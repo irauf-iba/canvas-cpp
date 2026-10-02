@@ -34,31 +34,17 @@
 #ifndef DRAW_HPP
 #define DRAW_HPP
 
-#include <cstdint>
 #include <string>
 #include <vector>
+
+#include "color.hpp"  // Color, rgb() and the predefined colors such as draw::RED
+#include "image.hpp"  // image::Image, for picture() and canvas()
 
 namespace draw {
 
 // ---------------------------------------------------------------------------
 // Basic types
 // ---------------------------------------------------------------------------
-
-// A color with red, green, blue and alpha (opacity) components, each 0-255.
-// Alpha 255 is fully opaque, 0 fully transparent.
-struct Color {
-    std::uint8_t r = 0;
-    std::uint8_t g = 0;
-    std::uint8_t b = 0;
-    std::uint8_t a = 255;
-};
-
-// Makes a color from int components. Values outside 0-255 are clamped.
-// Prefer this over Color{r, g, b} when the components are int variables.
-constexpr Color rgb(int r, int g, int b, int a = 255) {
-    auto clamp = [](int v) { return static_cast<std::uint8_t>(v < 0 ? 0 : v > 255 ? 255 : v); };
-    return Color{clamp(r), clamp(g), clamp(b), clamp(a)};
-}
 
 // A position in user coordinates.
 struct Point {
@@ -75,31 +61,6 @@ enum class Key {
     Left, Right, Up, Down,
     Shift, Control, Alt,
 };
-
-// ---------------------------------------------------------------------------
-// Predefined colors
-// ---------------------------------------------------------------------------
-
-constexpr Color BLACK      {  0,   0,   0};
-constexpr Color WHITE      {255, 255, 255};
-constexpr Color GRAY       {128, 128, 128};
-constexpr Color LIGHT_GRAY {192, 192, 192};
-constexpr Color DARK_GRAY  { 64,  64,  64};
-constexpr Color RED        {255,   0,   0};
-constexpr Color GREEN      {  0, 255,   0};
-constexpr Color BLUE       {  0,   0, 255};
-constexpr Color CYAN       {  0, 255, 255};
-constexpr Color MAGENTA    {255,   0, 255};
-constexpr Color YELLOW     {255, 255,   0};
-constexpr Color ORANGE     {255, 200,   0};
-constexpr Color PINK       {255, 175, 175};
-constexpr Color BROWN      {139,  69,  19};
-constexpr Color PURPLE     {128,   0, 128};
-
-// Colors used in the Sedgewick & Wayne textbook figures.
-constexpr Color BOOK_BLUE       {  9,  90, 166};
-constexpr Color BOOK_LIGHT_BLUE {103, 198, 243};
-constexpr Color BOOK_RED        {150,  35,  31};
 
 // ---------------------------------------------------------------------------
 // Window and coordinates
@@ -201,6 +162,13 @@ void text(double x, double y, const std::string& s, double degrees);
 void picture(double x, double y, const std::string& filename);
 void picture(double x, double y, const std::string& filename, double width, double height);
 
+// The same for an image made with image.hpp. At natural size, each image
+// pixel covers one canvas pixel, so on a canvas the same size as the image,
+//     draw::picture(0.5, 0.5, img);
+// fills the canvas exactly (with the default scale).
+void picture(double x, double y, const image::Image& img);
+void picture(double x, double y, const image::Image& img, double width, double height);
+
 // ---------------------------------------------------------------------------
 // Clearing, animation and saving
 // ---------------------------------------------------------------------------
@@ -234,6 +202,11 @@ void pause(int ms);
 // Saves the canvas to an image file. The format comes from the extension:
 // .png, .jpg or .bmp.
 void save(const std::string& filename);
+
+// A copy of the canvas as an image, for reading or processing its pixels.
+// It has the size set by setCanvasSize() (default 512 x 512), even on
+// high-DPI displays.
+image::Image canvas();
 
 // ---------------------------------------------------------------------------
 // Mouse

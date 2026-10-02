@@ -13,19 +13,26 @@ function(draw_test_executable name)
   target_compile_options(${name} PRIVATE ${DRAW_TEST_WARNINGS})
 endfunction()
 
-# The public header compiles cleanly with strict warnings treated as errors.
+# The public headers compile cleanly, each on its own, with strict warnings
+# treated as errors.
 draw_test_executable(header_test)
+target_sources(header_test PRIVATE header_color_test.cpp header_image_test.cpp)
 target_compile_options(header_test PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/WX,-Werror>)
 add_test(NAME header COMMAND header_test)
 
 # Snapshot tests against images in tests/reference.
 draw_test_executable(render_test)
 target_include_directories(render_test SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)
-foreach(scene IN ITEMS shapes polygons text pictures clipping aspect)
+foreach(scene IN ITEMS shapes polygons text pictures clipping aspect image)
   add_test(NAME render.${scene}
            COMMAND render_test ${scene} ${CMAKE_CURRENT_SOURCE_DIR}/reference)
   set_tests_properties(render.${scene} PROPERTIES ENVIRONMENT DRAW_HEADLESS=1)
 endforeach()
+
+# The image module and the draw <-> image bridge.
+draw_test_executable(image_test)
+add_test(NAME image COMMAND image_test)
+set_tests_properties(image PROPERTIES ENVIRONMENT DRAW_HEADLESS=1)
 
 # Mouse and keyboard input, frame boundaries and pause() timing.
 draw_test_executable(input_test SDL3::SDL3)
@@ -35,12 +42,16 @@ set_tests_properties(input PROPERTIES ENVIRONMENT SDL_VIDEO_DRIVER=offscreen TIM
 # Window lifetime.
 draw_test_executable(window_test SDL3::SDL3)
 add_test(NAME window.keep-open COMMAND window_test keep-open)
+add_test(NAME window.image-error COMMAND window_test image-error)
+set_tests_properties(window.image-error PROPERTIES
+                     PASS_REGULAR_EXPRESSION "image: get: col 512 is outside the image")
 set_tests_properties(window.keep-open PROPERTIES PASS_REGULAR_EXPRESSION "PASSED")
 foreach(name IN ITEMS close-in-pause close-while-drawing)
   add_test(NAME window.${name} COMMAND window_test ${name})
   set_tests_properties(window.${name} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
 endforeach()
 set_tests_properties(window.keep-open window.close-in-pause window.close-while-drawing
+                     window.image-error
                      PROPERTIES ENVIRONMENT SDL_VIDEO_DRIVER=offscreen TIMEOUT 10)
 
 # Each mistake stops the program with a helpful message.
@@ -56,13 +67,23 @@ set(error_cases
   "bad-canvas-size|setCanvasSize: width and height must be positive"
   "missing-font|setFont: cannot open 'no-such-font.ttf'"
   "negative-pause|pause: ms must not be negative"
+  "image-get-outside|image: get: col 5 is outside the image (0 to 4)"
+  "image-set-outside|image: set: row -1 is outside the image (0 to 2)"
+  "image-load-missing|image: load: cannot open 'no-such-file.png'"
+  "image-create-negative|image: create: width and height must not be negative"
+  "image-save-format|image: save: 'out.gif' must end in .png, .jpg or .bmp"
+  "image-save-empty|image: save: cannot save an empty image"
+  "image-inconsistent|draw: picture: the image has 3 pixels, but width x height is 2 x 2"
 )
 foreach(entry IN LISTS error_cases)
   string(FIND "${entry}" "|" bar)
   string(SUBSTRING "${entry}" 0 ${bar} name)
   math(EXPR start "${bar} + 1")
   string(SUBSTRING "${entry}" ${start} -1 message)
-  string(REGEX REPLACE "([][.*+?()^$])" "\\\\\\1" pattern "draw: ${message}")
+  if(NOT message MATCHES "^(draw|image): ")
+    set(message "draw: ${message}")
+  endif()
+  string(REGEX REPLACE "([][.*+?()^$])" "\\\\\\1" pattern "${message}")
   add_test(NAME error.${name} COMMAND error_test ${name})
   set_tests_properties(error.${name} PROPERTIES
                        ENVIRONMENT DRAW_HEADLESS=1 PASS_REGULAR_EXPRESSION "${pattern}")

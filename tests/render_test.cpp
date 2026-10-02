@@ -179,6 +179,49 @@ void aspect() {
     draw::filledEllipse(50, -2.6, 20, 0.25);  // follows the scales on purpose
 }
 
+void imageScene() {
+    // An image built pixel by pixel: a gradient with a red marker in the top
+    // left corner (row 0 is the top).
+    image::Image src = image::create(100, 100);
+    for (int row = 0; row < 100; ++row) {
+        for (int col = 0; col < 100; ++col) {
+            image::Color c = image::rgb(col * 255 / 99, row * 255 / 99, 160);
+            if (col < 25 && row < 25) c = image::RED;
+            image::set(src, col, row, c);
+        }
+    }
+    // Grayscale and mirrored copies.
+    image::Image gray = image::create(100, 100);
+    image::Image mirror = image::create(100, 100);
+    for (int row = 0; row < 100; ++row) {
+        for (int col = 0; col < 100; ++col) {
+            image::Color c = image::get(src, col, row);
+            int y = (299 * c.r + 587 * c.g + 114 * c.b) / 1000;
+            image::set(gray, col, row, image::rgb(y, y, y));
+            image::set(mirror, 99 - col, row, c);
+        }
+    }
+    draw::setCanvasSize(400, 200);
+    draw::clear(draw::LIGHT_GRAY);
+    draw::picture(0.125, 0.7, src);
+    draw::picture(0.375, 0.7, gray);
+    draw::picture(0.625, 0.7, mirror);
+    draw::picture(0.875, 0.5, src, 0.2, 0.9);  // scaled
+
+    // Canvas round trip: grab the canvas, invert the colors of the bottom
+    // left area in the image, and draw it back.
+    draw::setPenColor(draw::BOOK_BLUE);
+    draw::filledCircle(0.2, 0.15, 0.1);
+    image::Image c = draw::canvas();
+    for (int row = 140; row < 200; ++row) {
+        for (int col = 0; col < 150; ++col) {
+            image::Color p = image::get(c, col, row);
+            image::set(c, col, row, image::rgb(255 - p.r, 255 - p.g, 255 - p.b));
+        }
+    }
+    draw::picture(0.5, 0.5, c);
+}
+
 // --- comparison --------------------------------------------------------------
 
 struct Pixels {
@@ -256,6 +299,7 @@ int main(int argc, char** argv) {
     const std::map<std::string, std::function<void()>> scenes = {
         {"shapes", shapes}, {"polygons", polygons}, {"text", text},
         {"pictures", pictures}, {"clipping", clipping}, {"aspect", aspect},
+        {"image", imageScene},
     };
     if (argc != 3 || scenes.count(argv[1]) == 0) {
         std::printf("usage: render_test <scene> <reference-dir>\nscenes:");

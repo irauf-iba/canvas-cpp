@@ -4,6 +4,7 @@
 // Usage: error_test <case>
 
 #include <draw.hpp>
+#include <image.hpp>
 
 #include <cmath>
 #include <cstdio>
@@ -23,6 +24,19 @@ int main(int argc, char** argv) {
         {"bad-canvas-size", [] { draw::setCanvasSize(0, 100); }},
         {"missing-font", [] { draw::setFont("no-such-font.ttf"); }},
         {"negative-pause", [] { draw::pause(-1); }},
+        {"image-get-outside", [] { image::get(image::create(5, 3), 5, 0); }},
+        {"image-set-outside", [] { image::Image img = image::create(5, 3); image::set(img, 0, -1, image::RED); }},
+        {"image-load-missing", [] { image::load("no-such-file.png"); }},
+        {"image-create-negative", [] { image::create(-1, 10); }},
+        {"image-save-format", [] { image::save(image::create(2, 2), "out.gif"); }},
+        {"image-save-empty", [] { image::save(image::create(0, 0), "out.png"); }},
+        {"image-inconsistent", [] {
+            image::Image img;
+            img.width = 2;
+            img.height = 2;
+            img.pixels.resize(3);
+            draw::picture(0.5, 0.5, img);
+        }},
     };
     if (argc != 2 || cases.count(argv[1]) == 0) {
         std::printf("usage: error_test <case>\n");

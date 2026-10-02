@@ -74,7 +74,7 @@ The full documentation is in [`include/draw.hpp`](include/draw.hpp).
 | Shapes | `point`, `line`, `circle`, `ellipse`, `arc`, `square`, `rectangle`, `polygon`, `polyline` |
 | Filled shapes | `filledCircle`, `filledEllipse`, `filledSquare`, `filledRectangle`, `filledPolygon` |
 | Text | `text(x, y, s)`, `textLeft`, `textRight`, `text(x, y, s, degrees)`, `setFont(ttf)`, `setFontSize(px)` |
-| Images | `picture(x, y, file)`, `picture(x, y, file, w, h)`, `save(file)` |
+| Images | `picture(x, y, file)`, `picture(x, y, file, w, h)`, `picture(x, y, img)`, `save(file)`, `canvas()` |
 | Animation | `clear()`, `enableDoubleBuffering()`, `show()`, `pause(ms)` |
 | Mouse | `mouseX()`, `mouseY()`, `isMousePressed()`, `mouseClicked()` |
 | Keyboard | `hasNextKeyTyped()`, `nextKeyTyped()`, `isKeyPressed(draw::Key::Left)` |
@@ -122,11 +122,55 @@ falls behind never reacts to old clicks or keys.
 - `isKeyPressed()` and `isMousePressed()` report what is held down right now.
   Use them for game controls.
 
+### Images: `image.hpp`
+
+The `image` module covers image-processing exercises, like Princeton's
+`Picture`. An `image::Image` is a plain struct with `width`, `height` and
+`pixels`. You can copy it, pass it to functions and return it. It needs no
+window.
+
+```cpp
+#include <draw.hpp>
+#include <image.hpp>
+
+image::Image src = image::load("photo.png");
+image::Image out = image::create(src.width, src.height);
+for (int row = 0; row < src.height; ++row)
+    for (int col = 0; col < src.width; ++col) {
+        image::Color c = image::get(src, col, row);
+        int gray = (299 * c.r + 587 * c.g + 114 * c.b) / 1000;
+        image::set(out, col, row, image::rgb(gray, gray, gray));
+    }
+image::save(out, "gray.png");
+
+draw::setCanvasSize(out.width, out.height);   // or show it
+draw::picture(0.5, 0.5, out);
+```
+
+| Function | Does |
+|---|---|
+| `image::create(w, h)`, `image::create(w, h, color)` | A new image, white or filled with a color. |
+| `image::load(file)`, `image::save(img, file)` | Read or write .png, .jpg or .bmp (.gif can be read). |
+| `image::get(img, col, row)`, `image::set(img, col, row, color)` | Read or change one pixel, with a clear error if it is outside the image. |
+| `draw::picture(x, y, img)`, `draw::picture(x, y, img, w, h)` | Draw an image on the canvas. At natural size each image pixel covers exactly one canvas pixel. |
+| `draw::canvas()` | A copy of the canvas as an image, e.g. to process a drawing. |
+
+- **Rows and columns.** Column 0 is at the left and row 0 at the top, as in
+  image files and image editors. This is the opposite of `draw`'s y axis,
+  which points up; rows are positions in a grid, not coordinates.
+- **Colors.** `draw::Color` and `image::Color` are the same type, from
+  `color.hpp`, as are the color constants (`draw::RED` is `image::RED`).
+  Colors can be compared with `==`.
+
+`examples/image_effects.cpp` shows a grayscale and a mirrored copy side by
+side, of a drawing it makes itself or of an image file you pass to it.
+
 ### Mistakes stop the program with a message
 
-A negative radius, a NaN coordinate, a missing image file and similar mistakes
-print a message such as `draw: filledCircle: radius must not be negative` and
-exit with status 1.
+A negative radius, a NaN coordinate, a missing image file, a pixel outside an
+image and similar mistakes print a message and exit with status 1, for example
+`draw: filledCircle: radius must not be negative` or
+`image: get: col 640 is outside the image (0 to 639)`.
 
 ## Differences from Java's StdDraw
 
@@ -141,6 +185,7 @@ exit with status 1.
 | Typed keys queue forever | Dropped at the end of each frame | A lagging program doesn't replay old keys. |
 | Circles and squares stretch when the x and y scales differ | Always round and square; size in x units | A circle should look like a circle, and plot markers stay dots. |
 | `pause(ms)` sleeps | `pause(ms)` keeps a steady frame rate | Smooth animation even when drawing takes time. |
+| `Picture` class with `get`/`set` methods | `image::Image` struct with `image::get`/`image::set` | Same idea without classes; images are values you can copy and return. |
 | Exceptions | Message and exit | Clearer for beginners than an uncaught exception. |
 
 ## Autograding
@@ -169,10 +214,11 @@ tests use SDL's offscreen video driver.
 
 | Test | Checks |
 |---|---|
-| `header` | `draw.hpp` compiles with strict warnings as errors; `rgb()` clamps. |
+| `header` | Each public header compiles on its own with strict warnings as errors; `rgb()` clamps. |
 | `render.*` | Snapshot tests: each scene is compared with `tests/reference/<scene>.png`, allowing small differences. On failure, `<scene>-diff.png` in the build's `tests` folder marks the differing pixels in red. |
+| `image` | Creating, reading, changing, saving and loading images; copies are independent; `draw::canvas()` and `draw::picture()` with an image (pixel-exact at natural size). |
 | `input` | Clicks and typed keys (injected as SDL events), per-frame input rules, `pause()` timing. |
-| `window.*` | The window stays open after `main()` returns, and closing it ends the program, including in the middle of drawing. |
+| `window.*` | The window stays open after `main()` returns, and closing it ends the program, including in the middle of drawing. An error in the image module closes the window. |
 | `error.*` | Each mistake stops the program with the expected message. |
 
 After an intended change to rendering, regenerate the reference images, check
@@ -216,15 +262,19 @@ is the top-level project and off when it is used as a dependency.
   - in double-buffered mode, on `show()`, with vsync;
   - otherwise automatically, at most about 60 times a second.
 - **Fonts and images.** Text uses stb_truetype with a built-in subset of Noto
-  Sans. `picture()` and `save()` use stb_image and stb_image_write.
+  Sans. The image module reads and writes files with stb_image and
+  stb_image_write; it doesn't use SDL.
 - **Speed.** The library is compiled with optimization even when the student's
   project builds in Debug.
 
 ```
-include/draw.hpp       the public API
-src/draw.cpp           implementation
+include/draw.hpp       drawing, animation and input
+include/image.hpp      images as pixel grids
+include/color.hpp      Color and the predefined colors (shared)
+src/draw.cpp           draw implementation (SDL, rasterizer, text)
+src/image.cpp          image implementation and image file I/O
 src/font_data.inc      built-in font (generated by tools/make_font.sh)
-examples/              shapes, bouncing_ball, sketch
+examples/              shapes, bouncing_ball, sketch, image_effects
 tests/                 tests, reference images and benchmark
 tests/manual/          real-input test driven by xdotool
 third_party/stb/       stb_truetype, stb_image, stb_image_write
@@ -244,7 +294,7 @@ headless. Not yet done or tested:
   (`tests/manual/real_input.sh`), because SDL ignores injected events for
   keyboard state.
 
-Planned: `audio` and `image` modules alongside `draw`.
+Planned: an `audio` module alongside `draw` and `image`.
 
 ## Licenses
 

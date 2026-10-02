@@ -33,25 +33,14 @@
 #include <tuple>
 #include <vector>
 
-// stb libraries, compiled into this file with internal linkage so they cannot
-// clash with a copy of stb in the student's own program.
+#include "internal.hpp"
+
+// stb_truetype, compiled into this file with internal linkage so it cannot
+// clash with a copy of stb in the student's own program. Image files are
+// read and written in image.cpp.
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
-
-#define STB_IMAGE_STATIC
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_PNG
-#define STBI_ONLY_JPEG
-#define STBI_ONLY_BMP
-#define STBI_ONLY_GIF
-#define STBI_WINDOWS_UTF8
-#include <stb_image.h>
-
-#define STB_IMAGE_WRITE_STATIC
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#define STBIW_WINDOWS_UTF8
-#include <stb_image_write.h>
 
 namespace draw {
 namespace {
@@ -73,11 +62,6 @@ struct Vec {
     double x, y;
 };
 
-struct Image {
-    int w = 0, h = 0;
-    std::vector<std::uint8_t> rgba;
-};
-
 struct Glyph {
     int w = 0, h = 0, xoff = 0, yoff = 0;
     std::vector<std::uint8_t> alpha;
@@ -92,7 +76,7 @@ struct Font {
 struct State {
     bool initialized = false;
     bool headless = false;
-    bool exiting = false;  // closing or failing: don't keep the window open at exit
+    bool exiting = false;  // window closed: don't keep it open at exit
 
     // Window. width and height are logical pixels; the canvas has pw x ph
     // physical pixels, which differ on high-DPI displays.
@@ -130,7 +114,7 @@ struct State {
     int keyCount = 0, keyRead = 0;
     bool atFrameBoundary = false;  // true between consecutive show()/pause() calls
 
-    std::map<std::string, Image> images;
+    std::map<std::string, image::Image> pictures;  // picture() files, by name
     std::vector<float> scratch;     // coverage accumulation for filled shapes
     std::vector<float> strokeMask;  // kept all zero between strokes
 };
@@ -141,11 +125,7 @@ State& st() {
     return *s;
 }
 
-[[noreturn]] void fail(const std::string& message) {
-    std::fprintf(stderr, "draw: %s\n", message.c_str());
-    st().exiting = true;
-    std::exit(1);
-}
+[[noreturn]] void fail(const std::string& message) { draw_internal::fail("draw", message); }
 
 void checkFinite(const char* function, std::initializer_list<double> values) {
     for (double v : values) {
@@ -365,7 +345,7 @@ void endFrame() {
 void onExit() {
     State& s = st();
     if (!s.window) return;
-    if (!s.exiting) {
+    if (!s.exiting && !draw_internal::failing()) {
         // Keep the final picture on screen until the user closes the window.
         present();
         SDL_Event e;
@@ -916,33 +896,26 @@ void drawText(double x, double y, const std::string& text, double align, double 
 // Images
 // ---------------------------------------------------------------------------
 
-const Image& loadImage(const std::string& filename) {
+const image::Image& loadPicture(const std::string& filename) {
     State& s = st();
-    auto it = s.images.find(filename);
-    if (it != s.images.end()) return it->second;
-    int w, h, channels;
-    unsigned char* data = stbi_load(filename.c_str(), &w, &h, &channels, 4);
-    if (!data) fail("picture: cannot open '" + filename + "' (" + stbi_failure_reason() + ")");
-    Image image;
-    image.w = w;
-    image.h = h;
-    image.rgba.assign(data, data + static_cast<std::size_t>(w) * static_cast<std::size_t>(h) * 4);
-    stbi_image_free(data);
-    return s.images.emplace(filename, std::move(image)).first->second;
+    auto it = s.pictures.find(filename);
+    if (it != s.pictures.end()) return it->second;
+    image::Image img = draw_internal::readImageFile(filename, "draw", "picture");
+    return s.pictures.emplace(filename, std::move(img)).first->second;
 }
 
 // Draws the image centered at pixel (cx, cy), scaled to dw x dh pixels,
 // with bilinear filtering on premultiplied colors.
-void drawImagePX(const Image& img, double cx, double cy, double dw, double dh) {
-    if (dw <= 0 || dh <= 0) return;
+void drawImagePX(const image::Image& img, double cx, double cy, double dw, double dh) {
+    if (dw <= 0 || dh <= 0 || img.width == 0 || img.height == 0) return;
     const double left = std::round(cx - dw / 2), top = std::round(cy - dh / 2);
     Box box = clipBox(left, top, left + dw, top + dh);
-    const double sx = img.w / dw, sy = img.h / dh;
-    auto texel = [&](int x, int y) {
-        x = std::clamp(x, 0, img.w - 1);
-        y = std::clamp(y, 0, img.h - 1);
-        return &img.rgba[(static_cast<std::size_t>(y) * static_cast<std::size_t>(img.w) +
-                          static_cast<std::size_t>(x)) * 4];
+    const double sx = img.width / dw, sy = img.height / dh;
+    auto texel = [&](int x, int y) -> const Color& {
+        x = std::clamp(x, 0, img.width - 1);
+        y = std::clamp(y, 0, img.height - 1);
+        return img.pixels[static_cast<std::size_t>(y) * static_cast<std::size_t>(img.width) +
+                          static_cast<std::size_t>(x)];
     };
     for (int y = box.y0; y < box.y1; ++y) {
         double v = (y + 0.5 - top) * sy - 0.5;
@@ -953,14 +926,13 @@ void drawImagePX(const Image& img, double cx, double cy, double dw, double dh) {
             int i = static_cast<int>(std::floor(u));
             double fu = u - i;
             double sum[4] = {0, 0, 0, 0};
-            const std::uint8_t* q[4] = {texel(i, j), texel(i + 1, j), texel(i, j + 1),
-                                        texel(i + 1, j + 1)};
+            const Color* q[4] = {&texel(i, j), &texel(i + 1, j), &texel(i, j + 1), &texel(i + 1, j + 1)};
             const double wt[4] = {(1 - fu) * (1 - fv), fu * (1 - fv), (1 - fu) * fv, fu * fv};
             for (int n = 0; n < 4; ++n) {
-                double a = wt[n] * q[n][3];
-                sum[0] += q[n][0] * a;
-                sum[1] += q[n][1] * a;
-                sum[2] += q[n][2] * a;
+                double a = wt[n] * q[n]->a;
+                sum[0] += q[n]->r * a;
+                sum[1] += q[n]->g * a;
+                sum[2] += q[n]->b * a;
                 sum[3] += a;
             }
             if (sum[3] <= 0) continue;
@@ -969,11 +941,18 @@ void drawImagePX(const Image& img, double cx, double cy, double dw, double dh) {
     }
 }
 
-// The canvas at logical size (box-filtered down from physical pixels).
-std::vector<std::uint8_t> logicalPixels() {
+// The canvas at logical size (box-filtered down from physical pixels on
+// high-DPI displays).
+image::Image canvasImage() {
     const State& s = st();
-    if (s.pw == s.width && s.ph == s.height) return s.pixels;
-    std::vector<std::uint8_t> out(static_cast<std::size_t>(s.width) * static_cast<std::size_t>(s.height) * 4);
+    image::Image out;
+    out.width = s.width;
+    out.height = s.height;
+    out.pixels.resize(static_cast<std::size_t>(s.width) * static_cast<std::size_t>(s.height));
+    if (s.pw == s.width && s.ph == s.height) {
+        std::memcpy(out.pixels.data(), s.pixels.data(), s.pixels.size());
+        return out;
+    }
     const double fx = static_cast<double>(s.pw) / s.width, fy = static_cast<double>(s.ph) / s.height;
     auto range = [](int i, double f, int limit) {
         int a = static_cast<int>(std::ceil(i * f - 0.5));
@@ -994,20 +973,12 @@ std::vector<std::uint8_t> logicalPixels() {
                 }
             }
             unsigned n = static_cast<unsigned>((x1 - x0) * (y1 - y0));
-            std::uint8_t* o = &out[(static_cast<std::size_t>(y) * static_cast<std::size_t>(s.width) +
-                                    static_cast<std::size_t>(x)) * 4];
-            for (int c = 0; c < 4; ++c) o[c] = static_cast<std::uint8_t>((sum[c] + n / 2) / n);
+            auto avg = [&](int c) { return static_cast<std::uint8_t>((sum[c] + n / 2) / n); };
+            out.pixels[static_cast<std::size_t>(y) * static_cast<std::size_t>(s.width) +
+                       static_cast<std::size_t>(x)] = Color{avg(0), avg(1), avg(2), avg(3)};
         }
     }
     return out;
-}
-
-std::string lowerExtension(const std::string& filename) {
-    std::size_t dot = filename.find_last_of('.');
-    if (dot == std::string::npos) return "";
-    std::string ext = filename.substr(dot + 1);
-    for (char& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    return ext;
 }
 
 // Maps a Key to the SDL keycode of the key with that label.
@@ -1275,21 +1246,30 @@ void text(double x, double y, const std::string& s, double degrees) {
     afterDraw();
 }
 
-void picture(double x, double y, const std::string& filename) {
+void picture(double x, double y, const image::Image& img) {
     checkFinite("picture", {x, y});
+    draw_internal::checkImage(img, "draw", "picture");
     beginDraw();
-    const Image& img = loadImage(filename);
-    drawImagePX(img, toPX(x), toPY(y), img.w * st().scale, img.h * st().scale);
+    drawImagePX(img, toPX(x), toPY(y), img.width * st().scale, img.height * st().scale);
     afterDraw();
 }
 
-void picture(double x, double y, const std::string& filename, double width, double height) {
+void picture(double x, double y, const image::Image& img, double width, double height) {
     checkFinite("picture", {x, y, width, height});
     checkNonNegative("picture", "width", width);
     checkNonNegative("picture", "height", height);
+    draw_internal::checkImage(img, "draw", "picture");
     beginDraw();
-    drawImagePX(loadImage(filename), toPX(x), toPY(y), lengthPX(width), lengthPY(height));
+    drawImagePX(img, toPX(x), toPY(y), lengthPX(width), lengthPY(height));
     afterDraw();
+}
+
+void picture(double x, double y, const std::string& filename) {
+    picture(x, y, loadPicture(filename));
+}
+
+void picture(double x, double y, const std::string& filename, double width, double height) {
+    picture(x, y, loadPicture(filename), width, height);
 }
 
 // --- Clearing, animation and saving ------------------------------------------
@@ -1360,20 +1340,12 @@ void pause(int ms) {
 
 void save(const std::string& filename) {
     ensureInit();
-    const State& s = st();
-    std::vector<std::uint8_t> px = logicalPixels();
-    std::string ext = lowerExtension(filename);
-    int ok;
-    if (ext == "png") {
-        ok = stbi_write_png(filename.c_str(), s.width, s.height, 4, px.data(), s.width * 4);
-    } else if (ext == "jpg" || ext == "jpeg") {
-        ok = stbi_write_jpg(filename.c_str(), s.width, s.height, 4, px.data(), 95);
-    } else if (ext == "bmp") {
-        ok = stbi_write_bmp(filename.c_str(), s.width, s.height, 4, px.data());
-    } else {
-        fail("save: '" + filename + "' must end in .png, .jpg or .bmp");
-    }
-    if (!ok) fail("save: cannot write '" + filename + "'");
+    draw_internal::writeImageFile(canvasImage(), filename, "draw", "save");
+}
+
+image::Image canvas() {
+    ensureInit();
+    return canvasImage();
 }
 
 // --- Mouse -------------------------------------------------------------------

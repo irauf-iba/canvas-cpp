@@ -8,8 +8,11 @@
 //                        with exit code 0.
 //   close-while-drawing  Closing the window is noticed during a long run of
 //                        drawing calls, without show() or pause().
+//   image-error          An error in the image module closes an open window
+//                        instead of keeping it open.
 
 #include <draw.hpp>
+#include <image.hpp>
 
 #include <SDL3/SDL.h>
 
@@ -70,6 +73,13 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::printf("usage: window_test keep-open | close-in-pause | close-while-drawing\n");
+    if (test == "image-error") {
+        draw::filledCircle(0.5, 0.5, 0.25);
+        image::get(draw::canvas(), 512, 0);  // one past the right edge
+        std::printf("FAILED: no error reported\n");
+        return 1;
+    }
+
+    std::printf("usage: window_test keep-open | close-in-pause | close-while-drawing | image-error\n");
     return 2;
 }
