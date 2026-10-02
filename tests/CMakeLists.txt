@@ -21,7 +21,7 @@ add_test(NAME header COMMAND header_test)
 # Snapshot tests against images in tests/reference.
 draw_test_executable(render_test)
 target_include_directories(render_test SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)
-foreach(scene IN ITEMS shapes polygons text pictures clipping)
+foreach(scene IN ITEMS shapes polygons text pictures clipping aspect)
   add_test(NAME render.${scene}
            COMMAND render_test ${scene} ${CMAKE_CURRENT_SOURCE_DIR}/reference)
   set_tests_properties(render.${scene} PROPERTIES ENVIRONMENT DRAW_HEADLESS=1)

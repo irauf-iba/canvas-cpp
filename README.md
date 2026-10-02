@@ -83,6 +83,11 @@ By default the canvas is 512 × 512 pixels, with coordinates from (0, 0) at the
 lower left to (1, 1) at the upper right. Pen widths and font sizes are in
 pixels, so they don't change when the scale does.
 
+Circles, squares and arcs are always round and square, even on a rectangular
+canvas or when the x and y scales differ, as in a plot. Their radius or
+half-length is measured in x units and used in both directions. `ellipse()` and
+`rectangle()` take a separate width and height, and follow each axis's scale.
+
 ### Animation
 
 ```cpp
@@ -134,6 +139,7 @@ exit with status 1.
 | — | `polyline(points)` | For plotting functions. |
 | `isMousePressed()` polling for clicks | `mouseClicked()` | Short clicks between two polls aren't missed. |
 | Typed keys queue forever | Dropped at the end of each frame | A lagging program doesn't replay old keys. |
+| Circles and squares stretch when the x and y scales differ | Always round and square; size in x units | A circle should look like a circle, and plot markers stay dots. |
 | `pause(ms)` sleeps | `pause(ms)` keeps a steady frame rate | Smooth animation even when drawing takes time. |
 | Exceptions | Message and exit | Clearer for beginners than an uncaught exception. |
 

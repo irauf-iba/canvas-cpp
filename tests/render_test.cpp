@@ -152,6 +152,33 @@ void clipping() {
     draw::filledSquare(0.6, 0.6, 0.2);     // appears on the left
 }
 
+void aspect() {
+    // A rectangular canvas: circles, squares and arcs stay round and square,
+    // while ellipses and rectangles follow the separate x and y scales.
+    draw::setCanvasSize(400, 200);
+    draw::setPenColor(draw::BOOK_BLUE);
+    draw::filledCircle(0.1, 0.75, 0.07);
+    draw::filledSquare(0.3, 0.75, 0.07);
+    draw::setPenColor(draw::BOOK_RED);
+    draw::setPenWidth(3);
+    draw::circle(0.5, 0.75, 0.07);
+    draw::square(0.7, 0.75, 0.07);
+    draw::arc(0.9, 0.75, 0.07, 0, 270);
+
+    // A plot with very different x and y scales: the markers stay round.
+    draw::setXscale(0, 100);
+    draw::setYscale(-3, 1);
+    std::vector<draw::Point> curve;
+    for (int i = 0; i <= 100; ++i) curve.push_back({static_cast<double>(i), 0.8 * std::sin(i * 0.12) - 1.5});
+    draw::setPenColor(draw::GRAY);
+    draw::setPenWidth(1);
+    draw::polyline(curve);
+    draw::setPenColor(draw::BLACK);
+    for (int i = 0; i <= 100; i += 10) draw::filledCircle(i, curve[static_cast<std::size_t>(i)].y, 1.2);
+    draw::setPenColor(draw::ORANGE);
+    draw::filledEllipse(50, -2.6, 20, 0.25);  // follows the scales on purpose
+}
+
 // --- comparison --------------------------------------------------------------
 
 struct Pixels {
@@ -228,7 +255,7 @@ int compare(const std::string& scene, const std::string& actualPath, const std::
 int main(int argc, char** argv) {
     const std::map<std::string, std::function<void()>> scenes = {
         {"shapes", shapes}, {"polygons", polygons}, {"text", text},
-        {"pictures", pictures}, {"clipping", clipping},
+        {"pictures", pictures}, {"clipping", clipping}, {"aspect", aspect},
     };
     if (argc != 3 || scenes.count(argv[1]) == 0) {
         std::printf("usage: render_test <scene> <reference-dir>\nscenes:");

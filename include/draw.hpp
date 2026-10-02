@@ -19,6 +19,11 @@
 // setYscale() or setScale(). Pen widths and font sizes are in screen pixels
 // and do not change with the scale.
 //
+// Circles, squares and arcs are always round and square, even on a
+// rectangular canvas or when the x and y scales differ: their size is
+// measured in x units and used for both directions. Use ellipse() and
+// rectangle() for shapes with separate width and height.
+//
 // Errors, such as a missing image file, print a message and stop the program.
 //
 // Headless mode: if the environment variable DRAW_HEADLESS is set to 1, no
@@ -137,7 +142,8 @@ void setFontSize(double pixels);
 // Shapes
 //
 // Shapes are positioned by their center. Outline shapes use the pen width;
-// filled shapes are filled with the pen color.
+// filled shapes are filled with the pen color. A radius or halfLength is
+// measured in x units (see the note on coordinates at the top).
 // ---------------------------------------------------------------------------
 
 // A dot of the pen's width.

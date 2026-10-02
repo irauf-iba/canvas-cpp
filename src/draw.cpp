@@ -391,7 +391,9 @@ double toPY(double y) {
     return (s.ymax - y) / (s.ymax - s.ymin) * s.ph;
 }
 
-// Converts a length along x or y from user coordinates to pixels.
+// Converts a length along x or y from user coordinates to pixels. Circles,
+// squares and arcs use lengthPX for both directions so they stay round and
+// square when the x and y scales differ.
 double lengthPX(double w) {
     const State& s = st();
     return std::abs(w / (s.xmax - s.xmin) * s.pw);
@@ -699,6 +701,12 @@ std::vector<Vec> ellipsePX(Vec c, double rx, double ry, double a0, double a1, bo
         pts.push_back({c.x + rx * std::cos(t), c.y - ry * std::sin(t)});
     }
     return pts;
+}
+
+// A square centered at (x, y) with half side h pixels.
+std::vector<Vec> squarePX(double x, double y, double h) {
+    const Vec c = toPixel(x, y);
+    return {{c.x - h, c.y + h}, {c.x + h, c.y + h}, {c.x + h, c.y - h}, {c.x - h, c.y - h}};
 }
 
 std::vector<Vec> rectanglePX(double x, double y, double halfWidth, double halfHeight) {
@@ -1128,7 +1136,7 @@ void circle(double x, double y, double radius) {
     checkFinite("circle", {x, y, radius});
     checkNonNegative("circle", "radius", radius);
     beginDraw();
-    strokePX(ellipsePX(toPixel(x, y), lengthPX(radius), lengthPY(radius), 0, 360, true), true,
+    strokePX(ellipsePX(toPixel(x, y), lengthPX(radius), lengthPX(radius), 0, 360, true), true,
              penWidthPX());
     afterDraw();
 }
@@ -1137,7 +1145,7 @@ void filledCircle(double x, double y, double radius) {
     checkFinite("filledCircle", {x, y, radius});
     checkNonNegative("filledCircle", "radius", radius);
     beginDraw();
-    fillPolygonPX(ellipsePX(toPixel(x, y), lengthPX(radius), lengthPY(radius), 0, 360, true));
+    fillPolygonPX(ellipsePX(toPixel(x, y), lengthPX(radius), lengthPX(radius), 0, 360, true));
     afterDraw();
 }
 
@@ -1165,7 +1173,7 @@ void arc(double x, double y, double radius, double angle1, double angle2) {
     checkNonNegative("arc", "radius", radius);
     while (angle2 < angle1) angle2 += 360;
     beginDraw();
-    strokePX(ellipsePX(toPixel(x, y), lengthPX(radius), lengthPY(radius), angle1, angle2, false),
+    strokePX(ellipsePX(toPixel(x, y), lengthPX(radius), lengthPX(radius), angle1, angle2, false),
              false, penWidthPX());
     afterDraw();
 }
@@ -1174,7 +1182,7 @@ void square(double x, double y, double halfLength) {
     checkFinite("square", {x, y, halfLength});
     checkNonNegative("square", "halfLength", halfLength);
     beginDraw();
-    strokePX(rectanglePX(x, y, halfLength, halfLength), true, penWidthPX());
+    strokePX(squarePX(x, y, lengthPX(halfLength)), true, penWidthPX());
     afterDraw();
 }
 
@@ -1182,7 +1190,7 @@ void filledSquare(double x, double y, double halfLength) {
     checkFinite("filledSquare", {x, y, halfLength});
     checkNonNegative("filledSquare", "halfLength", halfLength);
     beginDraw();
-    fillPolygonPX(rectanglePX(x, y, halfLength, halfLength));
+    fillPolygonPX(squarePX(x, y, lengthPX(halfLength)));
     afterDraw();
 }
 
