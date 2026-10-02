@@ -3,9 +3,6 @@
 
 #include "image.hpp"
 
-#include <cctype>
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -31,26 +28,6 @@
 static_assert(sizeof(image::Color) == 4, "Color must be exactly 4 bytes");
 
 namespace draw_internal {
-
-namespace {
-bool gFailing = false;
-
-std::string lowerExtension(const std::string& filename) {
-    std::size_t dot = filename.find_last_of('.');
-    if (dot == std::string::npos) return "";
-    std::string ext = filename.substr(dot + 1);
-    for (char& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    return ext;
-}
-}  // namespace
-
-void fail(const char* module, const std::string& message) {
-    std::fprintf(stderr, "%s: %s\n", module, message.c_str());
-    gFailing = true;
-    std::exit(1);
-}
-
-bool failing() { return gFailing; }
 
 void checkImage(const image::Image& img, const char* module, const char* function) {
     if (img.width < 0 || img.height < 0 ||

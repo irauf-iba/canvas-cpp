@@ -3,11 +3,13 @@
 //
 // Usage: error_test <case>
 
+#include <audio.hpp>
 #include <draw.hpp>
 #include <image.hpp>
 
 #include <cmath>
 #include <cstdio>
+#include <fstream>
 #include <functional>
 #include <map>
 #include <string>
@@ -30,6 +32,14 @@ int main(int argc, char** argv) {
         {"image-create-negative", [] { image::create(-1, 10); }},
         {"image-save-format", [] { image::save(image::create(2, 2), "out.gif"); }},
         {"image-save-empty", [] { image::save(image::create(0, 0), "out.png"); }},
+        {"audio-read-missing", [] { audio::read("no-such-file.wav"); }},
+        {"audio-read-format", [] { audio::read("music.ogg"); }},
+        {"audio-read-invalid", [] {
+            std::ofstream("not-audio.wav") << "this is not a WAV file";
+            audio::read("not-audio.wav");
+        }},
+        {"audio-save-format", [] { audio::save("out.mp3", {0.0}); }},
+        {"audio-play-missing", [] { audio::play("no-such-file.mp3"); }},
         {"image-inconsistent", [] {
             image::Image img;
             img.width = 2;

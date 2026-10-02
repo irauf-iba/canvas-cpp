@@ -16,7 +16,7 @@ endfunction()
 # The public headers compile cleanly, each on its own, with strict warnings
 # treated as errors.
 draw_test_executable(header_test)
-target_sources(header_test PRIVATE header_color_test.cpp header_image_test.cpp)
+target_sources(header_test PRIVATE header_color_test.cpp header_image_test.cpp header_audio_test.cpp)
 target_compile_options(header_test PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/WX,-Werror>)
 add_test(NAME header COMMAND header_test)
 
@@ -33,6 +33,25 @@ endforeach()
 draw_test_executable(image_test)
 add_test(NAME image COMMAND image_test)
 set_tests_properties(image PROPERTIES ENVIRONMENT DRAW_HEADLESS=1)
+
+# The audio module without a device: files, resampling, clipping, capture.
+draw_test_executable(audio_test)
+add_test(NAME audio COMMAND audio_test ${CMAKE_CURRENT_SOURCE_DIR}/data)
+set_tests_properties(audio PROPERTIES
+                     ENVIRONMENT "DRAW_HEADLESS=1;DRAW_AUDIO_CAPTURE=audio_test_capture.wav")
+
+# The audio module with SDL's dummy (real-time, silent) and disk drivers.
+draw_test_executable(audio_device_test SDL3::SDL3)
+foreach(name IN ITEMS pacing file background)
+  add_test(NAME audio.${name} COMMAND audio_device_test ${name})
+endforeach()
+add_test(NAME audio.exit-drain COMMAND audio_device_test exit-drain)
+set_tests_properties(audio.exit-drain PROPERTIES PASS_REGULAR_EXPRESSION "PASSED")
+set_tests_properties(audio.pacing audio.file audio.background audio.exit-drain PROPERTIES
+                     ENVIRONMENT "SDL_AUDIO_DRIVER=dummy;SDL_VIDEO_DRIVER=offscreen" TIMEOUT 20)
+add_test(NAME audio.disk-output COMMAND audio_device_test disk-output)
+set_tests_properties(audio.disk-output PROPERTIES TIMEOUT 20 ENVIRONMENT
+                     "SDL_AUDIO_DRIVER=disk;SDL_AUDIO_DISK_OUTPUT_FILE=audio_device_test_disk.raw")
 
 # Mouse and keyboard input, frame boundaries and pause() timing.
 draw_test_executable(input_test SDL3::SDL3)
@@ -74,13 +93,18 @@ set(error_cases
   "image-save-format|image: save: 'out.gif' must end in .png, .jpg or .bmp"
   "image-save-empty|image: save: cannot save an empty image"
   "image-inconsistent|draw: picture: the image has 3 pixels, but width x height is 2 x 2"
+  "audio-read-missing|audio: read: cannot open 'no-such-file.wav'"
+  "audio-read-format|audio: read: 'music.ogg' must end in .wav or .mp3"
+  "audio-read-invalid|audio: read: 'not-audio.wav' is not a valid WAV file"
+  "audio-save-format|audio: save: 'out.mp3' must end in .wav"
+  "audio-play-missing|audio: play: cannot open 'no-such-file.mp3'"
 )
 foreach(entry IN LISTS error_cases)
   string(FIND "${entry}" "|" bar)
   string(SUBSTRING "${entry}" 0 ${bar} name)
   math(EXPR start "${bar} + 1")
   string(SUBSTRING "${entry}" ${start} -1 message)
-  if(NOT message MATCHES "^(draw|image): ")
+  if(NOT message MATCHES "^(draw|image|audio): ")
     set(message "draw: ${message}")
   endif()
   string(REGEX REPLACE "([][.*+?()^$])" "\\\\\\1" pattern "${message}")

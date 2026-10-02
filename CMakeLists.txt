@@ -33,7 +33,6 @@ else()
   set(SDL_TRAY         OFF CACHE BOOL "")
   set(SDL_VULKAN       OFF CACHE BOOL "")
   set(SDL_RENDER_D3D12 OFF CACHE BOOL "")
-  # SDL_AUDIO stays on for the planned audio module.
 
   # CMake 4.4 warns about backslashes in one of SDL's own configure checks.
   # Keep the behavior SDL was written for, and keep the output quiet.
@@ -50,14 +49,14 @@ else()
 endif()
 
 # ---------------------------------------------------------------------------
-# draw library (the draw and image modules)
+# draw library (the draw, image and audio modules)
 # ---------------------------------------------------------------------------
 
-add_library(draw STATIC src/draw.cpp src/image.cpp)
+add_library(draw STATIC src/draw.cpp src/image.cpp src/audio.cpp src/common.cpp)
 add_library(draw::draw ALIAS draw)
 
 target_include_directories(draw PUBLIC include)
-target_include_directories(draw SYSTEM PRIVATE third_party/stb)  # no warnings from stb
+target_include_directories(draw SYSTEM PRIVATE third_party/stb third_party/dr_libs)  # no warnings from these
 target_compile_features(draw PUBLIC cxx_std_17)
 target_link_libraries(draw PRIVATE SDL3::SDL3)  # students never see SDL
 

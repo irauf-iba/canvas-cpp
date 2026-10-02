@@ -56,6 +56,7 @@ const unsigned char kBuiltinFont[] = {
 constexpr int kKeyBufferSize = 16;
 constexpr Uint64 kPresentInterval = 16'666'667;  // ns; immediate mode shows at most ~60 frames/s
 constexpr Uint64 kPumpInterval = 50'000'000;     // ns; keeps the window responsive in long frames
+constexpr Uint64 kInputPumpInterval = 1'000'000;  // ns; input queries ask the OS at most this often
 constexpr double kCurveTolerance = 0.1;          // max distance in pixels from a curve to its polygon
 
 struct Vec {
@@ -203,8 +204,7 @@ void ensureInit() {
     State& s = st();
     if (s.initialized) return;
     s.initialized = true;
-    const char* headless = std::getenv("DRAW_HEADLESS");
-    s.headless = headless && *headless && std::strcmp(headless, "0") != 0;
+    s.headless = draw_internal::headlessRequested();
     if (s.headless) {
         sizeWindow();
     } else {
@@ -285,12 +285,32 @@ void handleEvent(const SDL_Event& e) {
     }
 }
 
+// Handles queued events. Asking the OS for new events is rate-limited, so
+// that input queries stay cheap when called very often (e.g. once per audio
+// sample); events already in SDL's queue are always handled.
 void pollEvents() {
     State& s = st();
     if (s.headless) return;
+    Uint64 now = SDL_GetTicksNS();
+    if (now - s.lastPump >= kInputPumpInterval) {
+        SDL_PumpEvents();
+        s.lastPump = now;
+    }
     SDL_Event e;
-    while (SDL_PollEvent(&e)) handleEvent(e);
-    s.lastPump = SDL_GetTicksNS();
+    while (SDL_PeepEvents(&e, 1, SDL_GETEVENT, SDL_EVENT_FIRST, SDL_EVENT_LAST) > 0) handleEvent(e);
+}
+
+// Lets the OS know the window is alive, but leaves input events queued for
+// the next query, show() or pause(). Ends the program if the window was closed.
+void pumpIfDue(Uint64 now) {
+    State& s = st();
+    if (now - s.lastPump < kPumpInterval) return;
+    SDL_PumpEvents();
+    s.lastPump = now;
+    if (SDL_HasEvent(SDL_EVENT_QUIT)) {
+        s.exiting = true;
+        std::exit(0);
+    }
 }
 
 // Called after every drawing operation.
@@ -300,16 +320,7 @@ void afterDraw() {
     if (s.headless) return;
     Uint64 now = SDL_GetTicksNS();
     if (!s.doubleBuffered && now - s.lastPresent >= kPresentInterval) present();
-    if (now - s.lastPump >= kPumpInterval) {
-        // Let the OS know the window is alive, but leave input events queued
-        // for the next query, show() or pause().
-        SDL_PumpEvents();
-        s.lastPump = now;
-        if (SDL_HasEvent(SDL_EVENT_QUIT)) {
-            s.exiting = true;
-            std::exit(0);
-        }
-    }
+    pumpIfDue(now);
 }
 
 // Entry point for drawing functions.
@@ -354,7 +365,10 @@ void onExit() {
             if (e.type == SDL_EVENT_WINDOW_EXPOSED) repaint();
         }
     }
-    SDL_Quit();
+    // Only video: the audio module may still be finishing its sound.
+    SDL_DestroyWindow(s.window);
+    s.window = nullptr;
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
 // ---------------------------------------------------------------------------
@@ -1406,3 +1420,7 @@ bool isKeyPressed(Key key) {
 }
 
 }  // namespace draw
+
+void draw_internal::keepWindowAlive() {
+    if (draw::st().window) draw::pumpIfDue(SDL_GetTicksNS());
+}
