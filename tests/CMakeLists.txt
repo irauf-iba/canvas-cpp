@@ -71,3 +71,10 @@ endforeach()
 # Timings; build with `--target benchmark`, not run by ctest.
 draw_test_executable(benchmark)
 set_target_properties(benchmark PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# Real keyboard and mouse input, driven by manual/real_input.sh with xdotool.
+# Needs a desktop and takes keyboard focus, so it is not run by ctest.
+add_executable(real_input manual/real_input.cpp)
+target_link_libraries(real_input PRIVATE draw::draw)
+target_compile_options(real_input PRIVATE ${DRAW_TEST_WARNINGS})
+set_target_properties(real_input PROPERTIES EXCLUDE_FROM_ALL TRUE)
