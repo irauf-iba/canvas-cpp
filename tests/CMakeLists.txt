@@ -123,3 +123,10 @@ add_executable(real_input manual/real_input.cpp)
 target_link_libraries(real_input PRIVATE draw::draw)
 target_compile_options(real_input PRIVATE ${DRAW_TEST_WARNINGS})
 set_target_properties(real_input PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# Sound through the real output device, recorded from its monitor and checked
+# by manual/speaker_test.sh. Makes sound, so it is not run by ctest.
+add_executable(speaker_test manual/speaker_test.cpp)
+target_link_libraries(speaker_test PRIVATE draw::draw)
+target_compile_options(speaker_test PRIVATE ${DRAW_TEST_WARNINGS})
+set_target_properties(speaker_test PROPERTIES EXCLUDE_FROM_ALL TRUE)
