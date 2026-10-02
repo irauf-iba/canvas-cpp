@@ -80,9 +80,8 @@ To split your program into several files, add the other `.cpp` files to the
 `add_executable(main main.cpp ball.cpp)`.
 
 Use the library's names with their namespace, as in `canvas::circle` and
-`image::get`. If you write `using namespace std;`, don't also write
-`using namespace image;`: then `set` could mean either `image::set` or
-`std::set`, and the compiler stops with "reference to 'set' is ambiguous".
+`image::load`. That keeps them apart from names in your own program and in
+`std`.
 
 ## 5. Images and sounds
 

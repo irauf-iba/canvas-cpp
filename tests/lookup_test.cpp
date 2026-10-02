@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
     // Read them by bare name.
     image::Image img = image::load("lookup_test.png");
-    CHECK(img.width == 3 && img.height == 2 && image::get(img, 0, 0) == image::RED);
+    CHECK(img.width == 3 && img.height == 2 && image::getPixel(img, 0, 0) == image::RED);
     CHECK(audio::read("lookup_test.wav").size() == 3);
     canvas::picture(0.5, 0.5, "lookup_test.png");  // canvas uses the same lookup
     return finish();

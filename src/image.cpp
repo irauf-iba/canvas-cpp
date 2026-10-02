@@ -81,26 +81,17 @@ void writeImageFile(const image::Image& img, const std::string& filename, const 
 
 namespace image {
 
-namespace {
-
-void checkPixel(const Image& img, int col, int row, const char* function) {
+std::size_t detail::pixelIndex(const Image& img, int row, int col, const char* function) {
     canvas_internal::checkImage(img, "image", function);
     auto outside = [&](const char* name, int value, int size) {
-        std::string range = size == 0 ? "the image is empty"
-                                      : "0 to " + std::to_string(size - 1);
-        canvas_internal::fail("image", std::string(function) + ": " + name + " " +
-                                         std::to_string(value) + " is outside the image (" + range + ")");
+        std::string range = size == 0 ? "the image is empty" : "0 to " + std::to_string(size - 1);
+        canvas_internal::fail("image", std::string(function) + ": " + name + " " + std::to_string(value) +
+                                           " is outside the image (" + range + ")");
     };
-    if (col < 0 || col >= img.width) outside("col", col, img.width);
     if (row < 0 || row >= img.height) outside("row", row, img.height);
+    if (col < 0 || col >= img.width) outside("col", col, img.width);
+    return static_cast<std::size_t>(row) * static_cast<std::size_t>(img.width) + static_cast<std::size_t>(col);
 }
-
-std::size_t indexOf(const Image& img, int col, int row) {
-    return static_cast<std::size_t>(row) * static_cast<std::size_t>(img.width) +
-           static_cast<std::size_t>(col);
-}
-
-}  // namespace
 
 Image create(int width, int height) { return create(width, height, WHITE); }
 
@@ -123,14 +114,12 @@ void save(const Image& img, const std::string& filename) {
     canvas_internal::writeImageFile(img, filename, "image", "save");
 }
 
-Color get(const Image& img, int col, int row) {
-    checkPixel(img, col, row, "get");
-    return img.pixels[indexOf(img, col, row)];
+Color getPixel(const Image& img, int row, int col) {
+    return img.pixels[detail::pixelIndex(img, row, col, "getPixel")];
 }
 
-void set(Image& img, int col, int row, Color color) {
-    checkPixel(img, col, row, "set");
-    img.pixels[indexOf(img, col, row)] = color;
+void setPixel(Image& img, int row, int col, Color color) {
+    img.pixels[detail::pixelIndex(img, row, col, "setPixel")] = color;
 }
 
 }  // namespace image

@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
 
     if (test == "image-error") {
         canvas::filledCircle(0.5, 0.5, 0.25);
-        image::get(canvas::snapshot(), 512, 0);  // one past the right edge
+        image::getPixel(canvas::snapshot(), 0, 512);  // one past the right edge
         std::printf("FAILED: no error reported\n");
         return 1;
     }

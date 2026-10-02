@@ -9,9 +9,9 @@ image::Image grayscale(const image::Image& src) {
     image::Image out = image::create(src.width, src.height);
     for (int row = 0; row < src.height; ++row) {
         for (int col = 0; col < src.width; ++col) {
-            image::Color c = image::get(src, col, row);
+            image::Color c = src[row][col];
             int gray = (299 * c.r + 587 * c.g + 114 * c.b) / 1000;
-            image::set(out, col, row, image::rgb(gray, gray, gray));
+            out[row][col] = image::rgb(gray, gray, gray);
         }
     }
     return out;
@@ -21,7 +21,7 @@ image::Image mirror(const image::Image& src) {
     image::Image out = image::create(src.width, src.height);
     for (int row = 0; row < src.height; ++row) {
         for (int col = 0; col < src.width; ++col) {
-            image::set(out, src.width - 1 - col, row, image::get(src, col, row));
+            out[row][src.width - 1 - col] = src[row][col];
         }
     }
     return out;

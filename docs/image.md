@@ -4,9 +4,10 @@
 
 The `image` module is for image-processing exercises, like Princeton's
 [Picture](https://introcs.cs.princeton.edu/java/stdlib/javadoc/Picture.html).
-An `image::Image` is a plain struct: you can copy it, pass it to functions and
-return it from them. The module needs no window, so image programs can run
-anywhere, including on a grading server.
+An `image::Image` is a struct you can copy, pass to functions and return from
+them, and its pixels can be used like a 2D array: `img[row][col]`. The module
+needs no window, so image programs can run anywhere, including on a grading
+server.
 
 ```cpp
 #include <canvas.hpp>
@@ -17,9 +18,9 @@ int main() {
     image::Image out = image::create(src.width, src.height);
     for (int row = 0; row < src.height; ++row) {
         for (int col = 0; col < src.width; ++col) {
-            image::Color c = image::get(src, col, row);
+            image::Color c = src[row][col];
             int gray = (299 * c.r + 587 * c.g + 114 * c.b) / 1000;
-            image::set(out, col, row, image::rgb(gray, gray, gray));
+            out[row][col] = image::rgb(gray, gray, gray);
         }
     }
     image::save(out, "gray.png");
@@ -41,13 +42,25 @@ struct Image {
 };
 ```
 
-Pixels are addressed by column and row. Column 0 is at the left and row 0 at
-the top, as in image files and image editors. This is the opposite of `canvas`'s
-y axis, which points up. The difference is deliberate: rows and columns are
-positions in a grid, not coordinates.
+## Rows and columns
 
-Pixel (col, row) is `pixels[row * width + col]`. Prefer `get` and `set`, which
-check that the pixel is inside the image.
+Pixels are addressed by row and then column, like a 2D array, and the same
+order is used everywhere: `img[row][col]`, `getPixel(img, row, col)` and
+`setPixel(img, row, col, color)`. Row 0 is at the top and column 0 at the
+left, as in image files and image editors. This is the opposite of
+`canvas`'s y axis, which points up. The difference is deliberate: rows and
+columns are positions in a grid, not coordinates.
+
+```cpp
+image::Color c = img[row][col];      // read a pixel
+img[row][col] = image::RED;          // change it
+img[row][col].g = 0;                 // change one component
+```
+
+`img[row][col]` checks that the pixel is inside the image and stops with a
+clear message if it isn't, unlike an out-of-range index into an array. The
+pixels are stored row after row in `img.pixels`: pixel (row, col) is
+`pixels[row * width + col]`, which is unchecked.
 
 ## Functions
 
@@ -57,16 +70,12 @@ check that the pixel is inside the image.
 | `image::create(width, height, color)` | A new image filled with the color. |
 | `image::load(file)` | Reads a .png, .jpg, .bmp or .gif (first frame) file. |
 | `image::save(img, file)` | Writes .png, .jpg or .bmp, chosen by the extension. PNG and BMP keep transparency; JPEG does not. |
-| `image::get(img, col, row)` | The color of a pixel. |
-| `image::set(img, col, row, color)` | Changes the color of a pixel. |
+| `img[row][col]` | A pixel, to read or change. |
+| `image::getPixel(img, row, col)` | The color of a pixel; the same as `img[row][col]`. |
+| `image::setPixel(img, row, col, color)` | Changes the color of a pixel; the same as `img[row][col] = color`. |
 
 Files are looked up in the current folder first, and then in the folder of
 the program itself, as described in [canvas.md](canvas.md#pictures-and-the-canvas).
-
-**`using namespace`.** Write `image::get` and `image::set` in full. If a
-program has both `using namespace std;` and `using namespace image;`, then
-`set` could mean `image::set` or `std::set`, and the compiler stops with
-"reference to 'set' is ambiguous".
 
 ## Colors
 
@@ -97,8 +106,9 @@ pixel.
 Mistakes stop the program with a message and exit status 1, for example:
 
 ```
-image: get: col 640 is outside the image (0 to 639)
-image: set: row -1 is outside the image (0 to 479)
+image: [row][col]: row 480 is outside the image (0 to 479)
+image: getPixel: col 640 is outside the image (0 to 639)
+image: setPixel: row -1 is outside the image (0 to 479)
 image: load: cannot open 'photo.png' (not in the current folder, /home/ana/lab3/build/)
 image: save: 'out.gif' must end in .png, .jpg or .bmp
 canvas: picture: the image has 3 pixels, but width x height is 2 x 2
@@ -111,7 +121,8 @@ hand so that they no longer match.
 
 | Picture | image | Why |
 |---|---|---|
-| `Picture` class with `get` and `set` methods | `image::Image` struct with `image::get` and `image::set` | Same idea without classes. Images are values you can copy and return. |
+| `Picture` class with `get` and `set` methods | `image::Image` struct with `img[row][col]`, `getPixel` and `setPixel` | Same idea without classes to write. Images are values you can copy and return, and their pixels work like a 2D array. |
+| `get(col, row)`: column first | `[row][col]`: row first | The same order as 2D arrays and nested row/column loops, in every function. |
 | `picture.show()` opens a window | `canvas::picture(x, y, img)` | Images are shown on the `canvas` canvas, together with any drawing. |
 | `setOriginLowerLeft()` | Always top-left | One convention, the same as image files and editors. |
 | Exceptions | Message and exit | Clearer for beginners than an uncaught exception. |
@@ -121,10 +132,13 @@ hand so that they no longer match.
 - **Files.** Reading and writing use stb_image and stb_image_write. They are
   compiled into the library privately, so they can't clash with a copy of stb
   in a student's program.
-- **No SDL.** The module doesn't use SDL, and image programs don't need a
-  display.
-- **Speed.** `get` and `set` check their arguments on every call and are still
-  fast: a grayscale pass over a 1000 × 1000 image takes about 15 ms.
+- **No display.** Image programs don't need a display or sound device.
+- **`img[row][col]`.** `img[row]` gives a small helper for that row, whose
+  `[col]` checks both numbers and returns the pixel. This is the one place
+  where the library uses member functions, since C++ only allows `[]` as one.
+- **Speed.** Every access is checked and still fast: a grayscale pass over a
+  1000 × 1000 image takes about 15 ms with `getPixel`/`setPixel`, and about
+  25 ms with `[row][col]` in an unoptimized (Debug) build.
 
 ## Example
 

@@ -85,7 +85,7 @@ canvas_test_executable(window_test SDL3::SDL3)
 add_test(NAME window.keep-open COMMAND window_test keep-open)
 add_test(NAME window.image-error COMMAND window_test image-error)
 set_tests_properties(window.image-error PROPERTIES
-                     PASS_REGULAR_EXPRESSION "image: get: col 512 is outside the image")
+                     PASS_REGULAR_EXPRESSION "image: getPixel: col 512 is outside the image")
 set_tests_properties(window.keep-open PROPERTIES PASS_REGULAR_EXPRESSION "PASSED")
 foreach(name IN ITEMS close-in-pause close-while-drawing)
   add_test(NAME window.${name} COMMAND window_test ${name})
@@ -108,8 +108,10 @@ set(error_cases
   "bad-canvas-size|setCanvasSize: width and height must be positive"
   "missing-font|setFont: cannot open 'no-such-font.ttf'"
   "negative-pause|pause: ms must not be negative"
-  "image-get-outside|image: get: col 5 is outside the image (0 to 4)"
-  "image-set-outside|image: set: row -1 is outside the image (0 to 2)"
+  "image-get-outside|image: getPixel: col 5 is outside the image (0 to 4)"
+  "image-set-outside|image: setPixel: row -1 is outside the image (0 to 2)"
+  "image-index-outside|image: [row][col]: row 3 is outside the image (0 to 2)"
+  "image-index-const|image: [row][col]: col -1 is outside the image (0 to 4)"
   "image-load-missing|image: load: cannot open 'no-such-file.png'"
   "image-create-negative|image: create: width and height must not be negative"
   "image-save-format|image: save: 'out.gif' must end in .png, .jpg or .bmp"

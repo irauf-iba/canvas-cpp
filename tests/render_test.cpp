@@ -187,7 +187,7 @@ void imageScene() {
         for (int col = 0; col < 100; ++col) {
             image::Color c = image::rgb(col * 255 / 99, row * 255 / 99, 160);
             if (col < 25 && row < 25) c = image::RED;
-            image::set(src, col, row, c);
+            image::setPixel(src, row, col, c);
         }
     }
     // Grayscale and mirrored copies.
@@ -195,10 +195,10 @@ void imageScene() {
     image::Image mirror = image::create(100, 100);
     for (int row = 0; row < 100; ++row) {
         for (int col = 0; col < 100; ++col) {
-            image::Color c = image::get(src, col, row);
+            image::Color c = image::getPixel(src, row, col);
             int y = (299 * c.r + 587 * c.g + 114 * c.b) / 1000;
-            image::set(gray, col, row, image::rgb(y, y, y));
-            image::set(mirror, 99 - col, row, c);
+            gray[row][col] = image::rgb(y, y, y);
+            mirror[row][99 - col] = c;
         }
     }
     canvas::setCanvasSize(400, 200);
@@ -215,8 +215,8 @@ void imageScene() {
     image::Image c = canvas::snapshot();
     for (int row = 140; row < 200; ++row) {
         for (int col = 0; col < 150; ++col) {
-            image::Color p = image::get(c, col, row);
-            image::set(c, col, row, image::rgb(255 - p.r, 255 - p.g, 255 - p.b));
+            image::Color p = image::getPixel(c, row, col);
+            image::setPixel(c, row, col, image::rgb(255 - p.r, 255 - p.g, 255 - p.b));
         }
     }
     canvas::picture(0.5, 0.5, c);

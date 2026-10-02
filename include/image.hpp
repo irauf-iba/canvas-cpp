@@ -9,17 +9,18 @@
 //     image::Image out = image::create(src.width, src.height);
 //     for (int row = 0; row < src.height; ++row) {
 //         for (int col = 0; col < src.width; ++col) {
-//             image::Color c = image::get(src, col, row);
+//             image::Color c = src[row][col];
 //             int gray = (299 * c.r + 587 * c.g + 114 * c.b) / 1000;
-//             image::set(out, col, row, image::rgb(gray, gray, gray));
+//             out[row][col] = image::rgb(gray, gray, gray);
 //         }
 //     }
 //     image::save(out, "gray.png");
 //
-// Pixels are addressed by column and row. Column 0 is at the left and row 0
-// at the top, as in image files and image editors. (This differs from canvas,
-// where y points up, because rows and columns are positions in a grid, not
-// coordinates.)
+// Pixels are addressed by row and then column, like a 2D array: img[row][col],
+// getPixel(img, row, col) and setPixel(img, row, col, color) all use that
+// order. Row 0 is at the top and column 0 at the left, as in image files and
+// image editors. (This differs from canvas, where y points up, because rows
+// and columns are positions in a grid, not coordinates.)
 //
 // Errors, such as a missing file or a pixel outside the image, print a
 // message and stop the program.
@@ -27,6 +28,7 @@
 #ifndef CANVAS_IMAGE_HPP
 #define CANVAS_IMAGE_HPP
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -34,14 +36,49 @@
 
 namespace image {
 
+struct Image;
+
+namespace detail {
+// The position of pixel (row, col) in img.pixels. Stops with an error naming
+// `function` if the pixel is outside the image.
+std::size_t pixelIndex(const Image& img, int row, int col, const char* function);
+
+// What img[row] gives: one row, to be indexed by column.
+struct Row {
+    Image* img;
+    int row;
+    Color& operator[](int col) const;
+};
+struct ConstRow {
+    const Image* img;
+    int row;
+    const Color& operator[](int col) const;
+};
+}  // namespace detail
+
 // An image of width x height pixels. pixels holds the rows one after
-// another, top row first: pixel (col, row) is pixels[row * width + col].
-// Prefer get() and set(), which check that (col, row) is inside the image.
+// another, top row first: pixel (row, col) is pixels[row * width + col].
 struct Image {
     int width = 0;
     int height = 0;
     std::vector<Color> pixels;
+
+    // img[row][col] is the pixel in that row and column, to read or change,
+    // as in a 2D array:
+    //     image::Color c = img[row][col];
+    //     img[row][col] = image::RED;
+    // Stops with an error if (row, col) is outside the image.
+    detail::Row operator[](int row) { return {this, row}; }
+    detail::ConstRow operator[](int row) const { return {this, row}; }
 };
+
+inline Color& detail::Row::operator[](int col) const {
+    return img->pixels[pixelIndex(*img, row, col, "[row][col]")];
+}
+
+inline const Color& detail::ConstRow::operator[](int col) const {
+    return img->pixels[pixelIndex(*img, row, col, "[row][col]")];
+}
 
 // A new image filled with the color (default WHITE).
 Image create(int width, int height);
@@ -54,11 +91,12 @@ Image load(const std::string& filename);
 // .jpg or .bmp. PNG and BMP keep transparency; JPEG does not.
 void save(const Image& img, const std::string& filename);
 
-// The color of pixel (col, row).
-Color get(const Image& img, int col, int row);
+// The color of the pixel at (row, col); the same as img[row][col].
+Color getPixel(const Image& img, int row, int col);
 
-// Changes the color of pixel (col, row).
-void set(Image& img, int col, int row, Color color);
+// Changes the color of the pixel at (row, col); the same as
+// img[row][col] = color.
+void setPixel(Image& img, int row, int col, Color color);
 
 }  // namespace image
 
