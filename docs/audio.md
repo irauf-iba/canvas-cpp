@@ -44,6 +44,9 @@ time, as in the example above.
 | `audio::save(file, samples)` | Writes a .wav file (mono, 16-bit, 44,100 Hz). |
 | `audio::play(file)` | Plays a .wav or .mp3 file and waits until it has finished. |
 
+Files are looked up in the current folder first, and then in the folder of
+the program itself, as described in [canvas.md](canvas.md#pictures-and-the-canvas).
+
 ### Background sound
 
 | Function | Does |
@@ -61,13 +64,13 @@ cheap.
 
 - **Program end.** Sound queued with `play()` finishes playing before the
   program ends, so the last note isn't cut off. Background sounds stop.
-- **With draw.** While `play()` waits, the `draw` window stays responsive.
-  `draw`'s input queries are cheap, so a Guitar Hero-style program can check
+- **With canvas.** While `play()` waits, the `canvas` window stays responsive.
+  `canvas`'s input queries are cheap, so a Guitar Hero-style program can check
   the keyboard once per sample:
 
   ```cpp
   while (true) {
-      if (draw::hasNextKeyTyped()) pluck(draw::nextKeyTyped());
+      if (canvas::hasNextKeyTyped()) pluck(canvas::nextKeyTyped());
       audio::play(nextSample());
   }
   ```
@@ -77,17 +80,17 @@ cheap.
 
 ## Headless mode and capture
 
-If the environment variable `DRAW_HEADLESS` is set to 1, no audio device is
+If the environment variable `CANVAS_HEADLESS` is set to 1, no audio device is
 opened and `play()` returns immediately. A program that plays a minute of
 music finishes in moments.
 
-If `DRAW_AUDIO_CAPTURE` is set to a file name ending in .wav, everything
+If `CANVAS_AUDIO_CAPTURE` is set to a file name ending in .wav, everything
 passed to `play()` is also written to that file when the program ends.
 Background sounds are not included, since their timing depends on the machine.
 Together these let a grader check a student's sound without a speaker:
 
 ```sh
-DRAW_HEADLESS=1 DRAW_AUDIO_CAPTURE=out.wav ./student_program
+CANVAS_HEADLESS=1 CANVAS_AUDIO_CAPTURE=out.wav ./student_program
 ```
 
 ## Errors
@@ -127,5 +130,5 @@ audio: save: 'out.mp3' must end in .wav
 - [`examples/scale.cpp`](../examples/scale.cpp): plays a C major scale one
   sample at a time, then saves it to `scale.wav`.
 - [`examples/piano.cpp`](../examples/piano.cpp): a keyboard piano. Type
-  `a s d f g h j k` or click the keys. It combines `draw` input with
+  `a s d f g h j k` or click the keys. It combines `canvas` input with
   background notes.

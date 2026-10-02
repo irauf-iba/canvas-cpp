@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.24)
 project(stddrawlib VERSION 0.1.0 LANGUAGES C CXX)
 
-option(DRAW_BUILD_EXAMPLES "Build the example programs" ${PROJECT_IS_TOP_LEVEL})
-option(DRAW_BUILD_TESTS "Build the tests" ${PROJECT_IS_TOP_LEVEL})
-option(DRAW_USE_SYSTEM_SDL "Use an installed SDL3 instead of building it from source" OFF)
+option(CANVAS_BUILD_EXAMPLES "Build the example programs" ${PROJECT_IS_TOP_LEVEL})
+option(CANVAS_BUILD_TESTS "Build the tests" ${PROJECT_IS_TOP_LEVEL})
+option(CANVAS_USE_SYSTEM_SDL "Use an installed SDL3 instead of building it from source" OFF)
 
 # ---------------------------------------------------------------------------
 # SDL3 (window, input, presentation)
@@ -13,7 +13,7 @@ option(DRAW_USE_SYSTEM_SDL "Use an installed SDL3 instead of building it from so
 # to an unpacked copy of the tarball below.
 # ---------------------------------------------------------------------------
 
-if(DRAW_USE_SYSTEM_SDL)
+if(CANVAS_USE_SYSTEM_SDL)
   find_package(SDL3 3.4 REQUIRED CONFIG)
 else()
   # Static only, and skip the subsystems we never use. These are cache
@@ -49,29 +49,39 @@ else()
 endif()
 
 # ---------------------------------------------------------------------------
-# draw library (the draw, image and audio modules)
+# canvas library (the canvas, image, audio and chance modules)
 # ---------------------------------------------------------------------------
 
-add_library(draw STATIC src/draw.cpp src/image.cpp src/audio.cpp src/common.cpp)
-add_library(draw::draw ALIAS draw)
+add_library(canvas STATIC src/canvas.cpp src/image.cpp src/audio.cpp src/chance.cpp src/common.cpp)
+add_library(canvas::canvas ALIAS canvas)
 
-target_include_directories(draw PUBLIC include)
-target_include_directories(draw SYSTEM PRIVATE third_party/stb third_party/dr_libs)  # no warnings from these
-target_compile_features(draw PUBLIC cxx_std_17)
-target_link_libraries(draw PRIVATE SDL3::SDL3)  # students never see SDL
+target_include_directories(canvas PUBLIC include)
+target_include_directories(canvas SYSTEM PRIVATE third_party/stb third_party/dr_libs)  # no warnings from these
+target_compile_features(canvas PUBLIC cxx_std_17)
+target_link_libraries(canvas PRIVATE SDL3::SDL3)  # students never see SDL
 
 # Students usually build without optimization, which makes a software
-# rasterizer 5-10x slower. Optimize this library regardless of their build type.
-# (MSVC needs /RTC1 removed before /O2 can be added; not handled yet.)
-if(NOT MSVC)
-  target_compile_options(draw PRIVATE $<$<NOT:$<CONFIG:Release,RelWithDebInfo,MinSizeRel>>:-O2>)
+# rasterizer 3-10x slower. Optimize this library regardless of their build type.
+if(MSVC)
+  # MSVC's Debug flags include /Od and runtime checks (/RTC1), which can't be
+  # combined with /O2. Remove them for the targets in this directory only; the
+  # student's own targets keep their Debug flags.
+  foreach(flags CMAKE_C_FLAGS_DEBUG CMAKE_CXX_FLAGS_DEBUG)
+    string(REGEX REPLACE "/RTC[1csu]+|/Od|/Ob0" "" ${flags} "${${flags}}")
+  endforeach()
+  target_compile_options(canvas PRIVATE $<$<CONFIG:Debug>:/O2 /Ob2>)
+  # getenv and fopen are fine here; don't show "unsafe function" warnings in
+  # students' build output.
+  target_compile_definitions(canvas PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+  target_compile_options(canvas PRIVATE $<$<NOT:$<CONFIG:Release,RelWithDebInfo,MinSizeRel>>:-O2>)
 endif()
 
 # ---------------------------------------------------------------------------
 # Examples
 # ---------------------------------------------------------------------------
 
-if(DRAW_BUILD_EXAMPLES)
+if(CANVAS_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
 
@@ -79,7 +89,7 @@ endif()
 # Tests
 # ---------------------------------------------------------------------------
 
-if(DRAW_BUILD_TESTS)
+if(CANVAS_BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()

@@ -2,7 +2,7 @@
 // click the keys. Notes play in the background, so several can sound at once.
 
 #include <audio.hpp>
-#include <draw.hpp>
+#include <canvas.hpp>
 
 #include <cmath>
 #include <string>
@@ -30,32 +30,32 @@ int main() {
     for (int i = 0; i < N; ++i) notes[i] = note(SEMITONES[i]);
     int lit[N] = {};  // frames left to show each key as pressed
 
-    draw::setTitle("Piano");
-    draw::setCanvasSize(640, 200);
-    draw::setXscale(0, N);
-    draw::enableDoubleBuffering();
+    canvas::setTitle("Piano");
+    canvas::setCanvasSize(640, 200);
+    canvas::setXscale(0, N);
+    canvas::enableDoubleBuffering();
 
     while (true) {
         int pressed = -1;
-        while (draw::hasNextKeyTyped()) {
-            std::size_t k = KEYS.find(draw::nextKeyTyped());
+        while (canvas::hasNextKeyTyped()) {
+            std::size_t k = KEYS.find(canvas::nextKeyTyped());
             if (k != std::string::npos) pressed = static_cast<int>(k);
         }
-        if (draw::mouseClicked()) pressed = static_cast<int>(draw::mouseX());
+        if (canvas::mouseClicked()) pressed = static_cast<int>(canvas::mouseX());
         if (pressed >= 0 && pressed < N) {
             audio::playInBackground(notes[pressed]);
             lit[pressed] = 10;
         }
 
-        draw::clear(draw::DARK_GRAY);
+        canvas::clear(canvas::DARK_GRAY);
         for (int i = 0; i < N; ++i) {
-            draw::setPenColor(lit[i] > 0 ? draw::BOOK_LIGHT_BLUE : draw::WHITE);
-            draw::filledRectangle(i + 0.5, 0.5, 0.45, 0.45);
-            draw::setPenColor(draw::BLACK);
-            draw::text(i + 0.5, 0.15, std::string(1, KEYS[i]));
+            canvas::setPenColor(lit[i] > 0 ? canvas::BOOK_LIGHT_BLUE : canvas::WHITE);
+            canvas::filledRectangle(i + 0.5, 0.5, 0.45, 0.45);
+            canvas::setPenColor(canvas::BLACK);
+            canvas::text(i + 0.5, 0.15, std::string(1, KEYS[i]));
             if (lit[i] > 0) --lit[i];
         }
-        draw::show();
-        draw::pause(16);
+        canvas::show();
+        canvas::pause(16);
     }
 }

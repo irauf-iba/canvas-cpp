@@ -4,7 +4,7 @@
 // expected input, then prints "PASS <name>" or "FAIL <name>". The script
 // watches the output and sends each input only after the WAIT line appears.
 
-#include <draw.hpp>
+#include <canvas.hpp>
 
 #include <cmath>
 #include <cstdio>
@@ -19,16 +19,16 @@ int failures = 0;
 bool step(const char* name, const std::function<bool()>& done, int timeoutMs = 5000) {
     std::printf("WAIT %s\n", name);
     std::fflush(stdout);
-    draw::clear();
-    draw::text(0.5, 0.5, std::string("waiting for: ") + name);
-    draw::show();
+    canvas::clear();
+    canvas::text(0.5, 0.5, std::string("waiting for: ") + name);
+    canvas::show();
     for (int t = 0; t < timeoutMs; t += 10) {
         if (done()) {
             std::printf("PASS %s\n", name);
             std::fflush(stdout);
             return true;
         }
-        draw::pause(10);
+        canvas::pause(10);
     }
     std::printf("FAIL %s (timed out)\n", name);
     std::fflush(stdout);
@@ -39,27 +39,29 @@ bool step(const char* name, const std::function<bool()>& done, int timeoutMs = 5
 }  // namespace
 
 int main() {
-    draw::setTitle("draw real input test");
-    draw::setCanvasSize(400, 300);
-    draw::enableDoubleBuffering();
+    canvas::setTitle("canvas real input test");
+    canvas::setCanvasSize(400, 300);
+    canvas::enableDoubleBuffering();
 
     // The script clicks the window to give it focus.
-    step("start-click", [] { return draw::mouseClicked(); }, 15000);
+    step("start-click", [] { return canvas::mouseClicked(); }, 15000);
 
-    step("left-down", [] { return draw::isKeyPressed(draw::Key::Left); });
-    step("left-up", [] { return !draw::isKeyPressed(draw::Key::Left); });
-    step("a-down", [] { return draw::isKeyPressed(draw::Key::A); });
-    step("a-up", [] { return !draw::isKeyPressed(draw::Key::A); });
-    step("shift-down", [] { return draw::isKeyPressed(draw::Key::Shift); });
-    step("shift-up", [] { return !draw::isKeyPressed(draw::Key::Shift); });
-    step("space-down", [] { return draw::isKeyPressed(draw::Key::Space); });
-    step("space-up", [] { return !draw::isKeyPressed(draw::Key::Space); });
+    step("left-down", [] { return canvas::isKeyPressed(canvas::Key::Left); });
+    step("left-up", [] { return !canvas::isKeyPressed(canvas::Key::Left); });
+    step("a-down", [] { return canvas::isKeyPressed(canvas::Key::A); });
+    step("a-up", [] { return !canvas::isKeyPressed(canvas::Key::A); });
+    step("shift-down", [] { return canvas::isKeyPressed(canvas::Key::Shift); });
+    step("shift-up", [] { return !canvas::isKeyPressed(canvas::Key::Shift); });
+    step("space-down", [] { return canvas::isKeyPressed(canvas::Key::Space); });
+    step("space-up", [] { return !canvas::isKeyPressed(canvas::Key::Space); });
+    // A quick tap (down and up between two checks) is caught by wasKeyPressed.
+    step("left-tap", [] { return canvas::wasKeyPressed(canvas::Key::Left); });
 
     // Typed text, including a shifted character, Backspace and Enter. Keys
     // carry over between frames here only because each frame reads them all.
     std::string typed;
     step("typing", [&] {
-        while (draw::hasNextKeyTyped()) typed += draw::nextKeyTyped();
+        while (canvas::hasNextKeyTyped()) typed += canvas::nextKeyTyped();
         return typed.find('\n') != std::string::npos;
     });
     const std::string expected = "Hi!x\b\n";
@@ -76,18 +78,18 @@ int main() {
     // The script moves the mouse to 75% across and 25% down the window,
     // which is (0.75, 0.75) in the default coordinates (y points up).
     step("mouse-move", [] {
-        return std::abs(draw::mouseX() - 0.75) < 0.02 && std::abs(draw::mouseY() - 0.75) < 0.02;
+        return std::abs(canvas::mouseX() - 0.75) < 0.02 && std::abs(canvas::mouseY() - 0.75) < 0.02;
     });
-    step("mouse-down", [] { return draw::isMousePressed(); });
-    step("mouse-up", [] { return !draw::isMousePressed(); });
+    step("mouse-down", [] { return canvas::isMousePressed(); });
+    step("mouse-up", [] { return !canvas::isMousePressed(); });
     // A quick click (down and up within one frame) must not be missed.
-    step("quick-click", [] { return draw::mouseClicked(); });
+    step("quick-click", [] { return canvas::mouseClicked(); });
 
     std::printf("RESULT %d failure(s)\n", failures);
     std::printf("WAIT close\n");
     std::fflush(stdout);
     // The script now closes the window; that should end the program here.
-    draw::pause(10000);
+    canvas::pause(10000);
     std::printf("FAIL close (still running)\n");
     return 1;
 }

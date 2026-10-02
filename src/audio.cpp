@@ -62,7 +62,7 @@ struct State {
     SDL_AudioStream* stream = nullptr;  // for play()
     std::vector<float> pending;         // samples not yet handed to SDL
 
-    std::string capturePath;  // DRAW_AUDIO_CAPTURE
+    std::string capturePath;  // CANVAS_AUDIO_CAPTURE
     std::vector<std::int16_t> captured;
 
     std::vector<Background*> background;
@@ -75,7 +75,7 @@ State& st() {
     return *s;
 }
 
-[[noreturn]] void fail(const std::string& message) { draw_internal::fail("audio", message); }
+[[noreturn]] void fail(const std::string& message) { canvas_internal::fail("audio", message); }
 
 float clampSample(double x) {
     if (!(x >= -1)) return x > 1 ? 1.0f : -1.0f;  // also maps NaN to -1
@@ -111,13 +111,13 @@ void ensureInit() {
     State& s = st();
     if (s.initialized) return;
     s.initialized = true;
-    if (const char* capture = std::getenv("DRAW_AUDIO_CAPTURE"); capture && *capture) {
+    if (const char* capture = std::getenv("CANVAS_AUDIO_CAPTURE"); capture && *capture) {
         s.capturePath = capture;
-        if (draw_internal::lowerExtension(s.capturePath) != "wav") {
-            fail("DRAW_AUDIO_CAPTURE must name a .wav file, not '" + s.capturePath + "'");
+        if (canvas_internal::lowerExtension(s.capturePath) != "wav") {
+            fail("CANVAS_AUDIO_CAPTURE must name a .wav file, not '" + s.capturePath + "'");
         }
     }
-    if (!draw_internal::headlessRequested()) openDevice();
+    if (!canvas_internal::headlessRequested()) openDevice();
     s.pending.reserve(kBlock);
     std::atexit(onExit);
 }
@@ -126,7 +126,7 @@ void ensureInit() {
 void waitUntilQueuedAtMost(int limit) {
     State& s = st();
     while (SDL_GetAudioStreamQueued(s.stream) > limit * kBytesPerSample) {
-        draw_internal::keepWindowAlive();
+        canvas_internal::keepWindowAlive();
         SDL_DelayNS(1'000'000);
     }
 }
@@ -160,15 +160,13 @@ void drainNow() {
     if (SDL_GetAudioDeviceFormat(s.device, &spec, &frames) && spec.freq > 0) {
         Uint64 end = SDL_GetTicksNS() + static_cast<Uint64>(frames) * 1'000'000'000ULL / static_cast<Uint64>(spec.freq) + 5'000'000;
         while (SDL_GetTicksNS() < end) {
-            draw_internal::keepWindowAlive();
+            canvas_internal::keepWindowAlive();
             SDL_DelayNS(1'000'000);
         }
     }
 }
 
 // --- files -------------------------------------------------------------------
-
-bool fileExists(const std::string& filename) { return static_cast<bool>(std::ifstream(filename)); }
 
 // Linear interpolation; adequate for course work.
 Sound resample(const std::vector<float>& in, unsigned rate) {
@@ -187,23 +185,24 @@ Sound resample(const std::vector<float>& in, unsigned rate) {
 }
 
 Sound readFile(const std::string& filename, const char* function) {
-    const std::string ext = draw_internal::lowerExtension(filename);
+    const std::string ext = canvas_internal::lowerExtension(filename);
     if (ext != "wav" && ext != "mp3") {
         fail(std::string(function) + ": '" + filename + "' must end in .wav or .mp3");
     }
-    if (!fileExists(filename)) fail(std::string(function) + ": cannot open '" + filename + "'");
+    const std::string path = canvas_internal::findInputFile(filename);
+    if (path.empty()) fail(std::string(function) + ": " + canvas_internal::notFound(filename));
 
     unsigned channels = 0, rate = 0;
     std::uint64_t frames = 0;
     float* data = nullptr;
     if (ext == "wav") {
         drwav_uint64 n = 0;
-        data = drwav_open_file_and_read_pcm_frames_f32(filename.c_str(), &channels, &rate, &n, nullptr);
+        data = drwav_open_file_and_read_pcm_frames_f32(path.c_str(), &channels, &rate, &n, nullptr);
         frames = n;
     } else {
         drmp3_config config{};
         drmp3_uint64 n = 0;
-        data = drmp3_open_file_and_read_pcm_frames_f32(filename.c_str(), &config, &n, nullptr);
+        data = drmp3_open_file_and_read_pcm_frames_f32(path.c_str(), &config, &n, nullptr);
         channels = config.channels;
         rate = config.sampleRate;
         frames = n;
@@ -314,9 +313,10 @@ void stopAllBackground() {
 }
 
 void onExit() {
+    canvas_internal::beginShutdown();
     State& s = st();
-    if (!draw_internal::failing()) drainNow();  // let the last notes finish
-    if (!s.capturePath.empty()) writeWav(s.capturePath, s.captured, "DRAW_AUDIO_CAPTURE");
+    if (!canvas_internal::failing()) drainNow();  // let the last notes finish
+    if (!s.capturePath.empty()) writeWav(s.capturePath, s.captured, "CANVAS_AUDIO_CAPTURE");
     if (s.device == 0) return;
     stopAllBackground();
     SDL_DestroyAudioStream(s.stream);
@@ -352,7 +352,7 @@ std::vector<double> read(const std::string& filename) {
 }
 
 void save(const std::string& filename, const std::vector<double>& samples) {
-    if (draw_internal::lowerExtension(filename) != "wav") {
+    if (canvas_internal::lowerExtension(filename) != "wav") {
         fail("save: '" + filename + "' must end in .wav");
     }
     std::vector<std::int16_t> pcm;

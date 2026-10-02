@@ -1,35 +1,35 @@
 // Drag the mouse to draw. Click to drop a dot, type r/g/b to change color,
 // c to clear, and s to save a picture.
 
-#include <draw.hpp>
+#include <canvas.hpp>
 
 int main() {
-    draw::setTitle("Sketch");
-    draw::setPenWidth(3);
+    canvas::setTitle("Sketch");
+    canvas::setPenWidth(3);
 
     double lastX = 0, lastY = 0;
     bool wasPressed = false;
 
     while (true) {
-        while (draw::hasNextKeyTyped()) {
-            char c = draw::nextKeyTyped();
-            if (c == 'r') draw::setPenColor(draw::RED);
-            if (c == 'g') draw::setPenColor(draw::GREEN);
-            if (c == 'b') draw::setPenColor(draw::BLUE);
-            if (c == 'c') draw::clear();
-            if (c == 's') draw::save("sketch.png");
+        while (canvas::hasNextKeyTyped()) {
+            char c = canvas::nextKeyTyped();
+            if (c == 'r') canvas::setPenColor(canvas::RED);
+            if (c == 'g') canvas::setPenColor(canvas::GREEN);
+            if (c == 'b') canvas::setPenColor(canvas::BLUE);
+            if (c == 'c') canvas::clear();
+            if (c == 's') canvas::save("sketch.png");
         }
 
-        double x = draw::mouseX(), y = draw::mouseY();
-        if (draw::mouseClicked()) draw::filledCircle(x, y, 0.01);
+        double x = canvas::mouseX(), y = canvas::mouseY();
+        if (canvas::mouseClicked()) canvas::filledCircle(x, y, 0.01);
 
-        if (draw::isMousePressed()) {
-            if (wasPressed) draw::line(lastX, lastY, x, y);
+        if (canvas::isMousePressed()) {
+            if (wasPressed) canvas::line(lastX, lastY, x, y);
             lastX = x;
             lastY = y;
         }
-        wasPressed = draw::isMousePressed();
+        wasPressed = canvas::isMousePressed();
 
-        draw::pause(10);
+        canvas::pause(10);
     }
 }

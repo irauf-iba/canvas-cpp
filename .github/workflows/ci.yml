@@ -1,0 +1,49 @@
+# Builds the library, examples and tests, and runs the tests, on Linux,
+# Windows (MSVC) and macOS, in Debug and Release. The tests need no display or
+# speakers: they use headless mode and SDL's offscreen and dummy drivers.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest, macos-latest]
+        config: [Debug, Release]
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }} ${{ matrix.config }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SDL build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build pkg-config \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev \
+            libxss-dev libxtst-dev libxkbcommon-dev libwayland-dev wayland-protocols \
+            libdecor-0-dev libegl1-mesa-dev libgl1-mesa-dev \
+            libasound2-dev libpulse-dev libpipewire-0.3-dev
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.config }} --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C ${{ matrix.config }} --output-on-failure
+
+      - name: Upload snapshot differences
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-diffs-${{ matrix.os }}-${{ matrix.config }}
+          path: build/tests/*-diff.png
+          if-no-files-found: ignore

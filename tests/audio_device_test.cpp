@@ -5,16 +5,20 @@
 // Usage: audio_device_test <case> [data-dir]
 //
 //   pacing          play() one sample at a time runs in real time, even when
-//                   a draw input query is made for every sample (as in a
+//                   a canvas input query is made for every sample (as in a
 //                   Guitar Hero program); drain() waits for the end.
 //   file            play(file) waits until the file has played.
 //   background      Background sounds start, loop and stop without waiting.
 //   exit-drain      Sound queued with play() finishes after main() returns.
 //   disk-output     The mixed output of play() and a background sound
 //                   reaches the device (needs SDL_AUDIO_DRIVER=disk).
+//   close-at-exit   Closing the window while queued sound finishes after
+//                   main() returns ends the program cleanly, and the
+//                   capture file is still written (needs
+//                   CANVAS_AUDIO_CAPTURE=audio_device_test_close.wav).
 
 #include <audio.hpp>
-#include <draw.hpp>
+#include <canvas.hpp>
 
 #include <SDL3/SDL.h>
 
@@ -46,11 +50,11 @@ std::vector<double> tone(double hz, double length, double amplitude) {
 }
 
 int pacing() {
-    draw::point(0.5, 0.5);  // open a window, as a Guitar Hero program would
+    canvas::point(0.5, 0.5);  // open a window, as a Guitar Hero program would
     Uint64 start = SDL_GetTicksNS();
     int keys = 0;
     for (int i = 0; i < audio::SAMPLE_RATE; ++i) {  // one second
-        if (draw::hasNextKeyTyped()) keys += draw::nextKeyTyped();
+        if (canvas::hasNextKeyTyped()) keys += canvas::nextKeyTyped();
         audio::play(0.3 * std::sin(2 * kPi * 440 * i / audio::SAMPLE_RATE));
     }
     double played = seconds(start);
@@ -106,6 +110,27 @@ int exitDrain() {
     return 0;
 }
 
+// Registered before the library's exit handlers, so it runs after them.
+void checkCloseAtExit() {
+    std::vector<double> captured = audio::read("audio_device_test_close.wav");
+    std::printf("capture has %zu samples\n", captured.size());
+    std::printf(captured.size() == static_cast<std::size_t>(audio::SAMPLE_RATE / 2)
+                    ? "PASSED\n"
+                    : "FAILED: capture file missing or incomplete\n");
+    std::fflush(stdout);
+}
+
+int closeAtExit() {
+    std::remove("audio_device_test_close.wav");
+    std::atexit(checkCloseAtExit);
+    canvas::point(0.5, 0.5);             // the window's exit handler runs last
+    audio::play(tone(440, 0.5, 0.3));    // the audio handler runs first, draining this
+    SDL_Event quit{};
+    quit.type = SDL_EVENT_QUIT;
+    SDL_PushEvent(&quit);                // the window is closed meanwhile
+    return 0;
+}
+
 SDL_AudioSpec deviceSpec{};
 
 // Reads the raw output the disk driver wrote, in the device's format. Runs
@@ -154,6 +179,8 @@ int main(int argc, char** argv) {
     if (test == "background") return background();
     if (test == "exit-drain") return exitDrain();
     if (test == "disk-output") return diskOutput();
-    std::printf("usage: audio_device_test pacing | file | background | exit-drain | disk-output\n");
+    if (test == "close-at-exit") return closeAtExit();
+    std::printf("usage: audio_device_test pacing | file | background | exit-drain | disk-output | "
+                "close-at-exit\n");
     return 2;
 }

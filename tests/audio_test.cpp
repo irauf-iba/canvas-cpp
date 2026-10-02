@@ -1,6 +1,6 @@
 // Tests for audio.hpp that need no audio device: reading and writing files,
-// mixing down, resampling, clipping and DRAW_AUDIO_CAPTURE. Run headless,
-// with DRAW_AUDIO_CAPTURE=audio_test_capture.wav.
+// mixing down, resampling, clipping and CANVAS_AUDIO_CAPTURE. Run headless,
+// with CANVAS_AUDIO_CAPTURE=audio_test_capture.wav.
 //
 // Usage: audio_test <data-dir>
 

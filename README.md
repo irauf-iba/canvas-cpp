@@ -1,54 +1,64 @@
-# draw
+# canvas
 
-A small drawing, image and sound library for introductory C++ courses, inspired
+A small drawing, image, sound and random-number library for introductory C++ courses, inspired
 by Princeton's [standard libraries](https://introcs.cs.princeton.edu/java/stdlib/).
 
 | Module | For | Like Princeton's | Guide |
 |---|---|---|---|
-| `draw` | Drawing, animation, mouse and keyboard | StdDraw | [docs/draw.md](docs/draw.md) |
+| `canvas` | Drawing, animation, mouse and keyboard | StdDraw | [docs/canvas.md](docs/canvas.md) |
 | `image` | Image processing, pixel by pixel | Picture | [docs/image.md](docs/image.md) |
 | `audio` | Sound as samples, sound files, background sound | StdAudio | [docs/audio.md](docs/audio.md) |
+| `chance` | Random numbers, the same on every computer for a given seed | StdRandom | [docs/chance.md](docs/chance.md) |
+
+**Students:** start with [docs/getting-started.md](docs/getting-started.md),
+which sets up the starter project in [`template`](template) with Visual
+Studio, VS Code, CLion or the command line.
 
 ```cpp
-#include <draw.hpp>
+#include <canvas.hpp>
 
 int main() {
-    draw::setPenColor(draw::BOOK_BLUE);
-    draw::filledCircle(0.5, 0.5, 0.25);
-    draw::text(0.5, 0.1, "Hello, draw!");
+    canvas::setPenColor(canvas::BOOK_BLUE);
+    canvas::filledCircle(0.5, 0.5, 0.25);
+    canvas::text(0.5, 0.1, "Hello, canvas!");
 }
 ```
 
-- **Only functions.** Everything is a free function in `namespace draw`,
-  `image` or `audio`. There are no classes to construct and no objects to
+- **Only functions.** Everything is a free function in `namespace canvas`,
+  `image`, `audio` or `chance`. There are no classes to construct and no objects to
   manage.
 - **Nothing to set up.** The window opens on the first drawing call, and the
   sound device on the first sound.
 - **Easy to install.** Students need only CMake and a C++17 compiler. SDL3 is
   downloaded and linked statically, and stays hidden from student code.
 - **Clear errors.** Mistakes stop the program with a message that names the
-  function, e.g. `draw: filledCircle: radius must not be negative`.
+  function, e.g. `canvas: filledCircle: radius must not be negative`.
 - **Ready for autograding.** Drawing is done in software, so output is the same
-  everywhere. Programs can run without a window (`DRAW_HEADLESS=1`), and their
-  sound can be captured to a file (`DRAW_AUDIO_CAPTURE=out.wav`).
+  everywhere. Programs can run without a window (`CANVAS_HEADLESS=1`), their
+  sound can be captured to a file (`CANVAS_AUDIO_CAPTURE=out.wav`), and their
+  random numbers repeated (`CANVAS_SEED=42`).
 
 ## Using it in a project
+
+The [`template`](template) folder is a ready-made project. To add the library
+to your own:
 
 ```cmake
 cmake_minimum_required(VERSION 3.24)
 project(hello CXX)
 
 include(FetchContent)
-FetchContent_Declare(draw
+FetchContent_Declare(canvas
   GIT_REPOSITORY https://github.com/<you>/stddrawlib   # TODO: real URL
-  GIT_TAG        main)
-FetchContent_MakeAvailable(draw)
+  GIT_TAG        main
+  GIT_SHALLOW    TRUE)
+FetchContent_MakeAvailable(canvas)
 
 add_executable(hello hello.cpp)
-target_link_libraries(hello PRIVATE draw::draw)
+target_link_libraries(hello PRIVATE canvas::canvas)
 ```
 
-One target, `draw::draw`, provides all three modules. A copy of this
+One target, `canvas::canvas`, provides all four modules. A copy of this
 repository next to the project works too, with `add_subdirectory(stddrawlib)`.
 
 The first configure downloads SDL, and the first build compiles it, which takes
@@ -57,13 +67,12 @@ a minute or two. Later builds reuse it.
 ### Requirements
 
 - CMake 3.24 or newer and a C++17 compiler.
-- **Linux:** SDL needs development headers to build:
-  - **Display:** on Debian/Ubuntu, roughly
-    `libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev libxtst-dev libwayland-dev libxkbcommon-dev libdecor-0-dev libegl1-mesa-dev`.
-  - **Sound:** `libasound2-dev libpulse-dev libpipewire-0.3-dev`. Without them
-    SDL builds without a sound backend and programs are silent.
-
-  SDL's `docs/README-linux.md` has the full list. The finished program loads
+- **Linux:** SDL needs `pkg-config` and development headers to build. The
+  Debian/Ubuntu package list is in
+  [docs/getting-started.md](docs/getting-started.md#1-install-the-tools)
+  (the same list the CI uses). Without the sound packages SDL builds without a
+  sound backend and programs are silent. SDL's `docs/README-linux.md` has
+  details. The finished program loads
   X11 or Wayland, and the sound system, at run time, so it runs on any of
   them.
 - **Windows and macOS:** nothing extra.
@@ -72,7 +81,7 @@ a minute or two. Later builds reuse it.
 
 - Set `FETCHCONTENT_SOURCE_DIR_SDL3=/path/to/SDL3-3.4.16` to build from a
   local copy of the SDL source instead of downloading it.
-- Configure with `-DDRAW_USE_SYSTEM_SDL=ON` to use an installed SDL 3.4 instead
+- Configure with `-DCANVAS_USE_SYSTEM_SDL=ON` to use an installed SDL 3.4 instead
   of building one.
 
 ## Building and testing this repository
@@ -94,27 +103,34 @@ The tests need no display or speakers:
 |---|---|
 | `header` | Each public header compiles on its own with strict warnings as errors. |
 | `render.*` | Snapshot tests: each scene is compared with `tests/reference/<scene>.png`, allowing small differences. On failure, `<scene>-diff.png` in the build's `tests` folder marks the differing pixels in red. |
-| `image` | Creating, changing, saving and loading images; `draw::canvas()` and `draw::picture()` with an image. |
-| `input` | Clicks and typed keys (injected as SDL events), per-frame input rules, `pause()` timing. |
+| `image` | Creating, changing, saving and loading images; `canvas::snapshot()` and `canvas::picture()` with an image. |
+| `text` | `text()` with numbers and characters: formatting and choice of overload. |
+| `chance`, `chance.*` | The same numbers for a seed (pinned values, checked on every platform), ranges, distributions, shuffling, and `CANVAS_SEED`. |
+| `lookup` | Files are found next to the program when the current folder is elsewhere. |
+| `input` | Clicks, typed keys and `wasKeyPressed` (injected as SDL events), per-frame input rules, `pause()` timing. |
 | `window.*` | The window stays open after `main()` returns, and closing it ends the program. |
 | `audio` | Sound files, mixing down, sample-rate conversion, clipping and capture, without a device. |
-| `audio.*` | Real-time playback, background sounds and sound at program exit, with the `dummy` driver; mixing in the device output, with the `disk` driver. |
+| `audio.*` | Real-time playback, background sounds, sound at program exit, and closing the window while that sound finishes, with the `dummy` driver; mixing in the device output, with the `disk` driver. |
 | `error.*` | Each mistake stops the program with the expected message. |
 
 After an intended change to rendering, regenerate the reference images, check
 them by eye, and commit them:
 
 ```sh
-DRAW_UPDATE_REFERENCES=1 ctest --test-dir build -R render
+CANVAS_UPDATE_REFERENCES=1 ctest --test-dir build -R render
 ```
+
+On GitHub, the workflow in `.github/workflows/ci.yml` runs this build and all
+tests on Linux, Windows (MSVC) and macOS, in Debug and Release. If a snapshot
+test fails there, its `-diff.png` images are attached to the run.
 
 ### Manual tests
 
 Two tests need a real desktop, so `ctest` doesn't run them.
 
 - **Real input** sends keyboard and mouse input with xdotool. It covers
-  `isKeyPressed()`, typing through the OS keyboard layout, and a real window
-  close request. It needs X11 or XWayland and opens a window that it types
+  `isKeyPressed()`, `wasKeyPressed()` with a quick tap, typing through the OS
+  keyboard layout, and a real window close request. It needs X11 or XWayland and opens a window that it types
   into, so don't type while it runs. It checks before every keystroke that the
   test window has focus, and stops otherwise.
 
@@ -132,41 +148,49 @@ Two tests need a real desktop, so `ctest` doesn't run them.
   tests/manual/speaker_test.sh build/tests/speaker_test
   ```
 
-For rough timings, build `--target benchmark` and run it with `DRAW_HEADLESS=1`
+For rough timings, build `--target benchmark` and run it with `CANVAS_HEADLESS=1`
 for drawing alone, or with a window to also measure animation frame pacing.
 
-`DRAW_BUILD_EXAMPLES` and `DRAW_BUILD_TESTS` default to on when this is the
+`CANVAS_BUILD_EXAMPLES` and `CANVAS_BUILD_TESTS` default to on when this is the
 top-level project and off when it is used as a dependency.
 
 ## Repository layout
 
 ```
-include/draw.hpp       drawing, animation and input
+include/canvas.hpp     drawing, animation and input
 include/image.hpp      images as pixel grids
 include/audio.hpp      sound
+include/chance.hpp     random numbers
 include/color.hpp      Color and the predefined colors (shared)
-src/draw.cpp           draw implementation (SDL, rasterizer, text)
+src/canvas.cpp         canvas implementation (SDL, rasterizer, text)
 src/image.cpp          image implementation and image file I/O
 src/audio.cpp          audio implementation (SDL audio, sound files)
-src/common.cpp         error handling and helpers shared by the modules
+src/chance.cpp         chance implementation
+src/common.cpp         error handling, file lookup and other shared helpers
 src/font_data.inc      built-in font (generated by tools/make_font.sh)
-docs/                  a guide to each module
-examples/              shapes, bouncing_ball, sketch, image_effects, scale, piano
+docs/                  getting started, and a guide to each module
+template/              starter project for students
+examples/              shapes, bouncing_ball, sketch, image_effects, scale, piano, random_walk
 tests/                 tests, reference images and benchmark
 tests/data/            small sound files for the audio tests
 tests/manual/          real-input test (xdotool) and speaker test (parecord)
 third_party/stb/       stb_truetype, stb_image, stb_image_write
 third_party/dr_libs/   dr_wav 0.14.5, dr_mp3 0.7.3
 third_party/font/      Noto Sans subset and its license
+.github/workflows/     CI: build and test on Linux, Windows and macOS
 ```
 
 ## Status
 
 The library works and is tested on Linux (Wayland, PipeWire), both with a
-window and headless. Not yet done or tested:
+window and headless. The CI workflow builds and tests on Windows (MSVC) and
+macOS as well, but has not run yet, because the repository isn't on GitHub
+yet. Not yet tested:
 
-- Windows, macOS and high-DPI displays.
-- On MSVC the library isn't yet optimized in Debug builds.
+- Windows and macOS beyond what the CI covers: real windows, high-DPI
+  displays and sound devices.
+- The MSVC settings that optimize the library in Debug builds.
+- The IDE steps in the getting-started guide, except on Linux.
 
 Limitations of individual modules are listed in their guides.
 

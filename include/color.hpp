@@ -1,15 +1,15 @@
-// color.hpp - the Color type and predefined colors, shared by draw and image.
+// color.hpp - the Color type and predefined colors, shared by canvas and image.
 //
-// Color is defined in namespace draw and is also available in namespace image,
-// so draw::Color and image::Color are the same type, as are draw::RED and
-// image::RED. Usually included through draw.hpp or image.hpp.
+// Color is defined in namespace canvas and is also available in namespace image,
+// so canvas::Color and image::Color are the same type, as are canvas::RED and
+// image::RED. Usually included through canvas.hpp or image.hpp.
 
-#ifndef DRAW_COLOR_HPP
-#define DRAW_COLOR_HPP
+#ifndef CANVAS_COLOR_HPP
+#define CANVAS_COLOR_HPP
 
 #include <cstdint>
 
-namespace draw {
+namespace canvas {
 
 // A color with red, green, blue and alpha (opacity) components, each 0-255.
 // Alpha 255 is fully opaque, 0 fully transparent.
@@ -53,34 +53,34 @@ constexpr Color BOOK_BLUE       {  9,  90, 166};
 constexpr Color BOOK_LIGHT_BLUE {103, 198, 243};
 constexpr Color BOOK_RED        {150,  35,  31};
 
-}  // namespace draw
+}  // namespace canvas
 
 namespace image {
 
-using draw::Color;
-using draw::rgb;
-using draw::operator==;
-using draw::operator!=;
+using canvas::Color;
+using canvas::rgb;
+using canvas::operator==;
+using canvas::operator!=;
 
-using draw::BLACK;
-using draw::WHITE;
-using draw::GRAY;
-using draw::LIGHT_GRAY;
-using draw::DARK_GRAY;
-using draw::RED;
-using draw::GREEN;
-using draw::BLUE;
-using draw::CYAN;
-using draw::MAGENTA;
-using draw::YELLOW;
-using draw::ORANGE;
-using draw::PINK;
-using draw::BROWN;
-using draw::PURPLE;
-using draw::BOOK_BLUE;
-using draw::BOOK_LIGHT_BLUE;
-using draw::BOOK_RED;
+using canvas::BLACK;
+using canvas::WHITE;
+using canvas::GRAY;
+using canvas::LIGHT_GRAY;
+using canvas::DARK_GRAY;
+using canvas::RED;
+using canvas::GREEN;
+using canvas::BLUE;
+using canvas::CYAN;
+using canvas::MAGENTA;
+using canvas::YELLOW;
+using canvas::ORANGE;
+using canvas::PINK;
+using canvas::BROWN;
+using canvas::PURPLE;
+using canvas::BOOK_BLUE;
+using canvas::BOOK_LIGHT_BLUE;
+using canvas::BOOK_RED;
 
 }  // namespace image
 
-#endif  // DRAW_COLOR_HPP
+#endif  // CANVAS_COLOR_HPP

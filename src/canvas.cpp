@@ -1,4 +1,4 @@
-// draw.cpp - implementation of draw.hpp.
+// canvas.cpp - implementation of canvas.hpp.
 //
 // Every drawing call is rasterized immediately into an RGBA canvas in memory,
 // on the caller's thread. SDL is used only to show that canvas in a window and
@@ -10,7 +10,7 @@
 // accumulation (as in font-rs); strokes use distance to the line segments, which
 // gives round joins and caps and overlaps without seams.
 
-#include "draw.hpp"
+#include "canvas.hpp"
 
 #include <SDL3/SDL.h>
 // Only for SDL_SetMainReady(): the student writes an ordinary main().
@@ -42,7 +42,7 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 
-namespace draw {
+namespace canvas {
 namespace {
 
 // ---------------------------------------------------------------------------
@@ -54,6 +54,7 @@ const unsigned char kBuiltinFont[] = {
 };
 
 constexpr int kKeyBufferSize = 16;
+constexpr int kKeyCount = static_cast<int>(Key::Alt) + 1;
 constexpr Uint64 kPresentInterval = 16'666'667;  // ns; immediate mode shows at most ~60 frames/s
 constexpr Uint64 kPumpInterval = 50'000'000;     // ns; keeps the window responsive in long frames
 constexpr Uint64 kInputPumpInterval = 1'000'000;  // ns; input queries ask the OS at most this often
@@ -81,7 +82,7 @@ struct State {
 
     // Window. width and height are logical pixels; the canvas has pw x ph
     // physical pixels, which differ on high-DPI displays.
-    std::string title = "draw";
+    std::string title = "canvas";
     int width = 512, height = 512;
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
@@ -113,6 +114,7 @@ struct State {
     bool clicked = false;
     std::array<char, kKeyBufferSize> keys{};
     int keyCount = 0, keyRead = 0;
+    std::array<bool, kKeyCount> keyWentDown{};  // keys pressed this frame, for wasKeyPressed()
     bool atFrameBoundary = false;  // true between consecutive show()/pause() calls
 
     std::map<std::string, image::Image> pictures;  // picture() files, by name
@@ -126,7 +128,7 @@ State& st() {
     return *s;
 }
 
-[[noreturn]] void fail(const std::string& message) { draw_internal::fail("draw", message); }
+[[noreturn]] void fail(const std::string& message) { canvas_internal::fail("canvas", message); }
 
 void checkFinite(const char* function, std::initializer_list<double> values) {
     for (double v : values) {
@@ -186,7 +188,7 @@ void openWindow() {
     SDL_SetMainReady();
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fail(std::string("cannot open a window: ") + SDL_GetError() +
-             "\n      (set DRAW_HEADLESS=1 to draw without a window)");
+             "\n      (set CANVAS_HEADLESS=1 to draw without a window)");
     }
     s.window = SDL_CreateWindow(s.title.c_str(), s.width, s.height,
                                 SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY);
@@ -204,7 +206,7 @@ void ensureInit() {
     State& s = st();
     if (s.initialized) return;
     s.initialized = true;
-    s.headless = draw_internal::headlessRequested();
+    s.headless = canvas_internal::headlessRequested();
     if (s.headless) {
         sizeWindow();
     } else {
@@ -244,6 +246,31 @@ void pushKey(char c) {
     if (s.keyCount < kKeyBufferSize) s.keys[static_cast<std::size_t>(s.keyCount++)] = c;
 }
 
+// The Key for an SDL keycode, or -1 if Key has no such key.
+int keyIndexOf(SDL_Keycode k) {
+    if (k >= SDLK_A && k <= SDLK_Z) return static_cast<int>(Key::A) + static_cast<int>(k - SDLK_A);
+    if (k >= SDLK_0 && k <= SDLK_9) return static_cast<int>(Key::Num0) + static_cast<int>(k - SDLK_0);
+    switch (k) {
+    case SDLK_SPACE: return static_cast<int>(Key::Space);
+    case SDLK_RETURN:
+    case SDLK_KP_ENTER: return static_cast<int>(Key::Enter);
+    case SDLK_ESCAPE: return static_cast<int>(Key::Escape);
+    case SDLK_BACKSPACE: return static_cast<int>(Key::Backspace);
+    case SDLK_TAB: return static_cast<int>(Key::Tab);
+    case SDLK_LEFT: return static_cast<int>(Key::Left);
+    case SDLK_RIGHT: return static_cast<int>(Key::Right);
+    case SDLK_UP: return static_cast<int>(Key::Up);
+    case SDLK_DOWN: return static_cast<int>(Key::Down);
+    case SDLK_LSHIFT:
+    case SDLK_RSHIFT: return static_cast<int>(Key::Shift);
+    case SDLK_LCTRL:
+    case SDLK_RCTRL: return static_cast<int>(Key::Control);
+    case SDLK_LALT:
+    case SDLK_RALT: return static_cast<int>(Key::Alt);
+    default: return -1;
+    }
+}
+
 void handleEvent(const SDL_Event& e) {
     State& s = st();
     switch (e.type) {
@@ -269,6 +296,10 @@ void handleEvent(const SDL_Event& e) {
         }
         break;
     case SDL_EVENT_KEY_DOWN:
+        if (!e.key.repeat) {
+            int k = keyIndexOf(e.key.key);
+            if (k >= 0) s.keyWentDown[static_cast<std::size_t>(k)] = true;
+        }
         // Keys that type a character but produce no text input event.
         switch (e.key.key) {
         case SDLK_RETURN:
@@ -307,7 +338,9 @@ void pumpIfDue(Uint64 now) {
     if (now - s.lastPump < kPumpInterval) return;
     SDL_PumpEvents();
     s.lastPump = now;
-    if (SDL_HasEvent(SDL_EVENT_QUIT)) {
+    // While the program is ending (e.g. audio finishing its sound), leave the
+    // event for onExit(): calling exit() from an exit handler is not allowed.
+    if (SDL_HasEvent(SDL_EVENT_QUIT) && !canvas_internal::shuttingDown()) {
         s.exiting = true;
         std::exit(0);
     }
@@ -351,12 +384,14 @@ void endFrame() {
     s.clicked = false;
     s.keyCount = 0;
     s.keyRead = 0;
+    s.keyWentDown.fill(false);
 }
 
 void onExit() {
+    canvas_internal::beginShutdown();
     State& s = st();
     if (!s.window) return;
-    if (!s.exiting && !draw_internal::failing()) {
+    if (!s.exiting && !canvas_internal::failing()) {
         // Keep the final picture on screen until the user closes the window.
         present();
         SDL_Event e;
@@ -914,7 +949,7 @@ const image::Image& loadPicture(const std::string& filename) {
     State& s = st();
     auto it = s.pictures.find(filename);
     if (it != s.pictures.end()) return it->second;
-    image::Image img = draw_internal::readImageFile(filename, "draw", "picture");
+    image::Image img = canvas_internal::readImageFile(filename, "canvas", "picture");
     return s.pictures.emplace(filename, std::move(img)).first->second;
 }
 
@@ -1080,8 +1115,10 @@ void setPenWidth(double pixels) {
 double penWidth() { return st().penWidth; }
 
 void setFont(const std::string& ttfFile) {
-    std::ifstream in(ttfFile, std::ios::binary);
-    if (!in) fail("setFont: cannot open '" + ttfFile + "'");
+    const std::string path = canvas_internal::findInputFile(ttfFile);
+    if (path.empty()) fail("setFont: " + canvas_internal::notFound(ttfFile));
+    std::ifstream in(path, std::ios::binary);
+    if (!in) fail("setFont: cannot read '" + ttfFile + "'");
     std::vector<unsigned char> data((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     State& s = st();
     Font font;
@@ -1232,6 +1269,16 @@ void polyline(const std::vector<double>& x, const std::vector<double>& y) {
 
 // --- Text and images ---------------------------------------------------------
 
+std::string detail::numberToText(double value) {
+    char buffer[64];
+    if (std::isfinite(value) && value == std::floor(value) && std::abs(value) < 1e15) {
+        std::snprintf(buffer, sizeof buffer, "%.0f", value);  // 1000000, not 1e+06
+    } else {
+        std::snprintf(buffer, sizeof buffer, "%g", value);    // 3.14159
+    }
+    return buffer;
+}
+
 void text(double x, double y, const std::string& s) {
     checkFinite("text", {x, y});
     beginDraw();
@@ -1262,7 +1309,7 @@ void text(double x, double y, const std::string& s, double degrees) {
 
 void picture(double x, double y, const image::Image& img) {
     checkFinite("picture", {x, y});
-    draw_internal::checkImage(img, "draw", "picture");
+    canvas_internal::checkImage(img, "canvas", "picture");
     beginDraw();
     drawImagePX(img, toPX(x), toPY(y), img.width * st().scale, img.height * st().scale);
     afterDraw();
@@ -1272,7 +1319,7 @@ void picture(double x, double y, const image::Image& img, double width, double h
     checkFinite("picture", {x, y, width, height});
     checkNonNegative("picture", "width", width);
     checkNonNegative("picture", "height", height);
-    draw_internal::checkImage(img, "draw", "picture");
+    canvas_internal::checkImage(img, "canvas", "picture");
     beginDraw();
     drawImagePX(img, toPX(x), toPY(y), lengthPX(width), lengthPY(height));
     afterDraw();
@@ -1354,10 +1401,10 @@ void pause(int ms) {
 
 void save(const std::string& filename) {
     ensureInit();
-    draw_internal::writeImageFile(canvasImage(), filename, "draw", "save");
+    canvas_internal::writeImageFile(canvasImage(), filename, "canvas", "save");
 }
 
-image::Image canvas() {
+image::Image snapshot() {
     ensureInit();
     return canvasImage();
 }
@@ -1405,6 +1452,14 @@ char nextKeyTyped() {
     return s.keys[static_cast<std::size_t>(s.keyRead++)];
 }
 
+bool wasKeyPressed(Key key) {
+    beginInput();
+    bool& pressed = st().keyWentDown[static_cast<std::size_t>(key)];
+    bool result = pressed;
+    pressed = false;
+    return result;
+}
+
 bool isKeyPressed(Key key) {
     beginInput();
     if (st().headless) return false;
@@ -1419,8 +1474,8 @@ bool isKeyPressed(Key key) {
     }
 }
 
-}  // namespace draw
+}  // namespace canvas
 
-void draw_internal::keepWindowAlive() {
-    if (draw::st().window) draw::pumpIfDue(SDL_GetTicksNS());
+void canvas_internal::keepWindowAlive() {
+    if (canvas::st().window) canvas::pumpIfDue(SDL_GetTicksNS());
 }

@@ -21,18 +21,18 @@
 // If no audio device is available, a warning is printed once and the
 // program continues without sound.
 //
-// Headless mode: if the environment variable DRAW_HEADLESS is set to 1, no
+// Headless mode: if the environment variable CANVAS_HEADLESS is set to 1, no
 // audio device is opened and play() returns immediately.
 //
-// Capture: if the environment variable DRAW_AUDIO_CAPTURE is set to a file
+// Capture: if the environment variable CANVAS_AUDIO_CAPTURE is set to a file
 // name ending in .wav, everything passed to play() is also written to that
 // file when the program ends (background sounds are not included). This is
 // useful for automated grading, with or without headless mode.
 //
 // Errors, such as a missing file, print a message and stop the program.
 
-#ifndef DRAW_AUDIO_HPP
-#define DRAW_AUDIO_HPP
+#ifndef CANVAS_AUDIO_HPP
+#define CANVAS_AUDIO_HPP
 
 #include <string>
 #include <vector>
@@ -87,4 +87,4 @@ void stopInBackground();
 
 }  // namespace audio
 
-#endif  // DRAW_AUDIO_HPP
+#endif  // CANVAS_AUDIO_HPP

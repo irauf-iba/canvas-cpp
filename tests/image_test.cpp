@@ -1,7 +1,7 @@
-// Tests for image.hpp and the draw <-> image bridge (draw::picture with an
-// Image, draw::canvas). Runs headless.
+// Tests for image.hpp and the canvas <-> image bridge (canvas::picture with an
+// Image, canvas::canvas). Runs headless.
 
-#include <draw.hpp>
+#include <canvas.hpp>
 #include <image.hpp>
 
 #include <chrono>
@@ -55,10 +55,10 @@ void testCopiesAreIndependent() {
 }
 
 void testSameColorType() {
-    draw::Color c = image::RED;  // the same type under both names
-    image::Color d = draw::rgb(255, 0, 0);
+    canvas::Color c = image::RED;  // the same type under both names
+    image::Color d = canvas::rgb(255, 0, 0);
     CHECK(c == d);
-    CHECK(draw::BOOK_BLUE == image::BOOK_BLUE);
+    CHECK(canvas::BOOK_BLUE == image::BOOK_BLUE);
 }
 
 void testSaveAndLoad() {
@@ -79,19 +79,19 @@ void testSaveAndLoad() {
 }
 
 void testCanvas() {
-    draw::setCanvasSize(40, 30);
-    image::Image c = draw::canvas();
+    canvas::setCanvasSize(40, 30);
+    image::Image c = canvas::snapshot();
     CHECK(c.width == 40 && c.height == 30);
-    CHECK(image::get(c, 20, 15) == draw::WHITE);
+    CHECK(image::get(c, 20, 15) == canvas::WHITE);
 
-    // The top-left quarter of the canvas, in draw coordinates (y up).
-    draw::setPenColor(draw::RED);
-    draw::filledRectangle(0.25, 0.75, 0.25, 0.25);
-    c = draw::canvas();
-    CHECK(image::get(c, 0, 0) == draw::RED);      // row 0 is the top
-    CHECK(image::get(c, 19, 14) == draw::RED);
-    CHECK(image::get(c, 20, 15) == draw::WHITE);
-    CHECK(image::get(c, 39, 29) == draw::WHITE);
+    // The top-left quarter of the canvas, in canvas coordinates (y up).
+    canvas::setPenColor(canvas::RED);
+    canvas::filledRectangle(0.25, 0.75, 0.25, 0.25);
+    c = canvas::snapshot();
+    CHECK(image::get(c, 0, 0) == canvas::RED);      // row 0 is the top
+    CHECK(image::get(c, 19, 14) == canvas::RED);
+    CHECK(image::get(c, 20, 15) == canvas::WHITE);
+    CHECK(image::get(c, 39, 29) == canvas::WHITE);
 }
 
 void testPictureAtNaturalSizeIsExact() {
@@ -103,17 +103,17 @@ void testPictureAtNaturalSizeIsExact() {
             image::set(img, col, row, image::rgb(col * 6, row * 8, (col + row) * 3));
         }
     }
-    draw::setCanvasSize(40, 30);
-    draw::picture(0.5, 0.5, img);
-    CHECK(draw::canvas().pixels == img.pixels);
+    canvas::setCanvasSize(40, 30);
+    canvas::picture(0.5, 0.5, img);
+    CHECK(canvas::snapshot().pixels == img.pixels);
 
     // Round trip: canvas -> image -> picture.
-    draw::clear(draw::BLACK);
-    draw::picture(0.5, 0.5, img);
-    image::Image again = draw::canvas();
-    draw::clear();
-    draw::picture(0.5, 0.5, again);
-    CHECK(draw::canvas().pixels == img.pixels);
+    canvas::clear(canvas::BLACK);
+    canvas::picture(0.5, 0.5, img);
+    image::Image again = canvas::snapshot();
+    canvas::clear();
+    canvas::picture(0.5, 0.5, again);
+    CHECK(canvas::snapshot().pixels == img.pixels);
 }
 
 void testSpeed() {

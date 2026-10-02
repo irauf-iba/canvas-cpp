@@ -1,14 +1,14 @@
-// draw.hpp - simple 2D drawing for introductory programming.
+// canvas.hpp - simple 2D drawing for introductory programming.
 //
 // Inspired by Princeton's StdDraw (https://introcs.cs.princeton.edu/java/stdlib/),
 // with a few deliberate simplifications. Everything is a free function in
-// namespace draw; there are no classes to construct.
+// namespace canvas; there are no classes to construct.
 //
-//     #include <draw.hpp>
+//     #include <canvas.hpp>
 //
 //     int main() {
-//         draw::setPenColor(draw::BLUE);
-//         draw::filledCircle(0.5, 0.5, 0.25);
+//         canvas::setPenColor(canvas::BLUE);
+//         canvas::filledCircle(0.5, 0.5, 0.25);
 //     }
 //
 // The window opens on the first drawing call and stays open after main()
@@ -26,21 +26,22 @@
 //
 // Errors, such as a missing image file, print a message and stop the program.
 //
-// Headless mode: if the environment variable DRAW_HEADLESS is set to 1, no
+// Headless mode: if the environment variable CANVAS_HEADLESS is set to 1, no
 // window is opened, pause() returns immediately and no input is ever reported.
 // Drawing still works and save() writes the canvas, which is useful for
 // automated grading.
 
-#ifndef DRAW_HPP
-#define DRAW_HPP
+#ifndef CANVAS_HPP
+#define CANVAS_HPP
 
 #include <string>
+#include <type_traits>
 #include <vector>
 
-#include "color.hpp"  // Color, rgb() and the predefined colors such as draw::RED
+#include "color.hpp"  // Color, rgb() and the predefined colors such as canvas::RED
 #include "image.hpp"  // image::Image, for picture() and canvas()
 
-namespace draw {
+namespace canvas {
 
 // ---------------------------------------------------------------------------
 // Basic types
@@ -70,7 +71,7 @@ enum class Key {
 // clears it. Usually called once, before drawing anything.
 void setCanvasSize(int width, int height);
 
-// Sets the window title (default "draw").
+// Sets the window title (default "canvas").
 void setTitle(const std::string& title);
 
 // Sets the range of x or y coordinates shown in the window (default 0 to 1).
@@ -132,7 +133,7 @@ void rectangle(double x, double y, double halfWidth, double halfHeight);
 void filledRectangle(double x, double y, double halfWidth, double halfHeight);
 
 // A closed polygon through the given vertices, e.g.
-//     draw::polygon({{0.1, 0.1}, {0.5, 0.9}, {0.9, 0.1}});
+//     canvas::polygon({{0.1, 0.1}, {0.5, 0.9}, {0.9, 0.1}});
 void polygon(const std::vector<Point>& vertices);
 void filledPolygon(const std::vector<Point>& vertices);
 
@@ -157,6 +158,16 @@ void textRight(double x, double y, const std::string& s);
 // Writes text centered at (x, y), rotated counterclockwise by degrees.
 void text(double x, double y, const std::string& s, double degrees);
 
+// Writes a number or a single character, e.g. canvas::text(0.5, 0.9, score).
+// Numbers show up to 6 significant digits (3.14159); whole numbers show all
+// their digits (1000000). See the templates at the end of this file.
+template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+void text(double x, double y, T value);
+template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+void textLeft(double x, double y, T value);
+template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+void textRight(double x, double y, T value);
+
 // Draws an image file (.png, .jpg, .bmp, .gif) centered at (x, y), at its
 // natural size or scaled to the given width and height in user coordinates.
 void picture(double x, double y, const std::string& filename);
@@ -164,7 +175,7 @@ void picture(double x, double y, const std::string& filename, double width, doub
 
 // The same for an image made with image.hpp. At natural size, each image
 // pixel covers one canvas pixel, so on a canvas the same size as the image,
-//     draw::picture(0.5, 0.5, img);
+//     canvas::picture(0.5, 0.5, img);
 // fills the canvas exactly (with the default scale).
 void picture(double x, double y, const image::Image& img);
 void picture(double x, double y, const image::Image& img, double width, double height);
@@ -181,12 +192,12 @@ void clear(Color color);
 // animation, enable double buffering: drawing then happens off screen and
 // only appears when show() is called.
 //
-//     draw::enableDoubleBuffering();
+//     canvas::enableDoubleBuffering();
 //     while (true) {
-//         draw::clear();
+//         canvas::clear();
 //         ...draw the next frame...
-//         draw::show();
-//         draw::pause(16);   // about 60 frames per second
+//         canvas::show();
+//         canvas::pause(16);   // about 60 frames per second
 //     }
 void enableDoubleBuffering();
 void disableDoubleBuffering();
@@ -206,7 +217,7 @@ void save(const std::string& filename);
 // A copy of the canvas as an image, for reading or processing its pixels.
 // It has the size set by setCanvasSize() (default 512 x 512), even on
 // high-DPI displays.
-image::Image canvas();
+image::Image snapshot();
 
 // ---------------------------------------------------------------------------
 // Mouse
@@ -234,14 +245,53 @@ bool mouseClicked();
 // forgotten, and at most 16 unread characters are kept (any more, e.g. from
 // pasting, are ignored). Only ASCII characters are reported.
 //
-//     if (draw::hasNextKeyTyped()) ...      // handle one key per frame
-//     while (draw::hasNextKeyTyped()) ...   // handle every key this frame
+//     if (canvas::hasNextKeyTyped()) ...      // handle one key per frame
+//     while (canvas::hasNextKeyTyped()) ...   // handle every key this frame
 bool hasNextKeyTyped();
 char nextKeyTyped();
 
-// True while the key is held down.
+// True while the key is held down. Use it for keys held to move or steer.
 bool isKeyPressed(Key key);
 
-}  // namespace draw
+// True if the key was pressed during the current frame, that is, since the
+// last show() or pause(). Returns true only once per press, so a quick tap
+// between two frames is not missed; holding the key down does not repeat.
+// Use it for keys that do something once, such as turning in Snake:
+//     if (canvas::wasKeyPressed(canvas::Key::Left)) turnLeft();
+bool wasKeyPressed(Key key);
 
-#endif  // DRAW_HPP
+// ---------------------------------------------------------------------------
+// Implementation of the text() templates
+// ---------------------------------------------------------------------------
+
+namespace detail {
+
+std::string numberToText(double value);
+
+template <typename T>
+std::string toText(T value) {
+    if constexpr (std::is_same_v<T, bool>) {
+        return value ? "true" : "false";
+    } else if constexpr (std::is_same_v<T, char>) {
+        return std::string(1, value);
+    } else if constexpr (std::is_integral_v<T>) {
+        return std::to_string(+value);  // + shows uint8_t values such as Color::r as numbers
+    } else {
+        return numberToText(static_cast<double>(value));
+    }
+}
+
+}  // namespace detail
+
+template <typename T, typename>
+void text(double x, double y, T value) { text(x, y, detail::toText(value)); }
+
+template <typename T, typename>
+void textLeft(double x, double y, T value) { textLeft(x, y, detail::toText(value)); }
+
+template <typename T, typename>
+void textRight(double x, double y, T value) { textRight(x, y, detail::toText(value)); }
+
+}  // namespace canvas
+
+#endif  // CANVAS_HPP

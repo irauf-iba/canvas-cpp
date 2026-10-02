@@ -2,4 +2,4 @@
 
 #include <color.hpp>
 
-static_assert(draw::rgb(1, 2, 3) == image::rgb(1, 2, 3), "draw and image share Color");
+static_assert(canvas::rgb(1, 2, 3) == image::rgb(1, 2, 3), "canvas and image share Color");

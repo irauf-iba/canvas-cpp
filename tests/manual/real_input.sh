@@ -56,7 +56,7 @@ step() {
 SDL_VIDEO_DRIVER=x11 "$bin" >"$log" 2>&1 &
 pid=$!
 
-wid=$(timeout 10 xdotool search --sync --name '^draw real input test$' | head -n 1)
+wid=$(timeout 10 xdotool search --sync --name '^canvas real input test$' | head -n 1)
 [ -n "$wid" ] || fail "test window did not appear"
 eval "$(xdotool getwindowgeometry --shell "$wid")"  # sets WIDTH and HEIGHT
 
@@ -77,6 +77,7 @@ step shift-down keydown shift
 step shift-up keyup shift
 step space-down keydown space
 step space-up keyup space
+step left-tap key Left
 step typing type --delay 30 'Hi!x'
 require_focus
 xdotool key BackSpace Return

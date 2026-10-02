@@ -3,7 +3,7 @@
 // Inspired by Princeton's Picture class. An Image is a plain struct you can
 // copy, pass to functions and return from them; the functions below create,
 // load, save, read and change it. No window is needed. To show an image, use
-// draw::picture() from draw.hpp.
+// canvas::picture() from canvas.hpp.
 //
 //     image::Image src = image::load("photo.png");
 //     image::Image out = image::create(src.width, src.height);
@@ -17,15 +17,15 @@
 //     image::save(out, "gray.png");
 //
 // Pixels are addressed by column and row. Column 0 is at the left and row 0
-// at the top, as in image files and image editors. (This differs from draw,
+// at the top, as in image files and image editors. (This differs from canvas,
 // where y points up, because rows and columns are positions in a grid, not
 // coordinates.)
 //
 // Errors, such as a missing file or a pixel outside the image, print a
 // message and stop the program.
 
-#ifndef DRAW_IMAGE_HPP
-#define DRAW_IMAGE_HPP
+#ifndef CANVAS_IMAGE_HPP
+#define CANVAS_IMAGE_HPP
 
 #include <string>
 #include <vector>
@@ -62,4 +62,4 @@ void set(Image& img, int col, int row, Color color);
 
 }  // namespace image
 
-#endif  // DRAW_IMAGE_HPP
+#endif  // CANVAS_IMAGE_HPP

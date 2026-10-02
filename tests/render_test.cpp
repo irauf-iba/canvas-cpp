@@ -4,10 +4,10 @@
 // Usage: render_test <scene> <reference-dir>
 //
 // Small differences (e.g. from a different math library) are tolerated. To
-// accept new output as the reference, run with DRAW_UPDATE_REFERENCES=1.
+// accept new output as the reference, run with CANVAS_UPDATE_REFERENCES=1.
 // On failure, <scene>-diff.png marks the differing pixels in red.
 
-#include <draw.hpp>
+#include <canvas.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -31,152 +31,152 @@ namespace {
 const double kPi = 3.14159265358979323846;
 
 void shapes() {
-    draw::setCanvasSize(400, 400);
-    draw::setPenColor(draw::BOOK_BLUE);
-    draw::filledCircle(0.12, 0.8, 0.09);
-    draw::filledSquare(0.37, 0.8, 0.09);
-    draw::filledRectangle(0.62, 0.8, 0.11, 0.06);
-    draw::filledEllipse(0.87, 0.8, 0.11, 0.06);
+    canvas::setCanvasSize(400, 400);
+    canvas::setPenColor(canvas::BOOK_BLUE);
+    canvas::filledCircle(0.12, 0.8, 0.09);
+    canvas::filledSquare(0.37, 0.8, 0.09);
+    canvas::filledRectangle(0.62, 0.8, 0.11, 0.06);
+    canvas::filledEllipse(0.87, 0.8, 0.11, 0.06);
 
-    draw::setPenColor(draw::BOOK_RED);
-    draw::setPenWidth(3);
-    draw::circle(0.12, 0.5, 0.09);
-    draw::square(0.37, 0.5, 0.09);
-    draw::rectangle(0.62, 0.5, 0.11, 0.06);
-    draw::ellipse(0.87, 0.5, 0.11, 0.06);
+    canvas::setPenColor(canvas::BOOK_RED);
+    canvas::setPenWidth(3);
+    canvas::circle(0.12, 0.5, 0.09);
+    canvas::square(0.37, 0.5, 0.09);
+    canvas::rectangle(0.62, 0.5, 0.11, 0.06);
+    canvas::ellipse(0.87, 0.5, 0.11, 0.06);
 
-    draw::setPenColor(draw::BLACK);
+    canvas::setPenColor(canvas::BLACK);
     for (int i = 0; i < 6; ++i) {  // pen widths 0.5 to 8
-        draw::setPenWidth(0.5 + i * 1.5);
-        draw::line(0.05 + i * 0.07, 0.1, 0.1 + i * 0.07, 0.3);
+        canvas::setPenWidth(0.5 + i * 1.5);
+        canvas::line(0.05 + i * 0.07, 0.1, 0.1 + i * 0.07, 0.3);
     }
-    draw::setPenWidth(4);
-    draw::arc(0.62, 0.2, 0.09, 45, 315);
-    draw::arc(0.87, 0.2, 0.09, 300, 60);  // wraps past 360
+    canvas::setPenWidth(4);
+    canvas::arc(0.62, 0.2, 0.09, 45, 315);
+    canvas::arc(0.87, 0.2, 0.09, 300, 60);  // wraps past 360
 }
 
 void polygons() {
-    draw::setCanvasSize(400, 400);
-    std::vector<draw::Point> star;
+    canvas::setCanvasSize(400, 400);
+    std::vector<canvas::Point> star;
     for (int i = 0; i < 5; ++i) {
         double t = kPi / 2 + i * 4 * kPi / 5;
         star.push_back({0.15 + 0.12 * std::cos(t), 0.7 + 0.12 * std::sin(t)});
     }
-    draw::setPenColor(draw::rgb(40, 160, 60));
-    draw::filledPolygon(star);  // nonzero rule: the center is filled
-    draw::setPenColor(draw::BLACK);
-    draw::setPenWidth(1);
-    draw::polygon(star);
+    canvas::setPenColor(canvas::rgb(40, 160, 60));
+    canvas::filledPolygon(star);  // nonzero rule: the center is filled
+    canvas::setPenColor(canvas::BLACK);
+    canvas::setPenWidth(1);
+    canvas::polygon(star);
 
     // Translucent overlapping circles.
-    draw::setPenColor(draw::rgb(255, 0, 0, 128));
-    draw::filledCircle(0.45, 0.72, 0.1);
-    draw::setPenColor(draw::rgb(0, 0, 255, 128));
-    draw::filledCircle(0.55, 0.65, 0.1);
+    canvas::setPenColor(canvas::rgb(255, 0, 0, 128));
+    canvas::filledCircle(0.45, 0.72, 0.1);
+    canvas::setPenColor(canvas::rgb(0, 0, 255, 128));
+    canvas::filledCircle(0.55, 0.65, 0.1);
 
     // The vector-of-coordinates overloads.
-    draw::setPenColor(draw::ORANGE);
-    draw::filledPolygon({0.75, 0.95, 0.85}, {0.6, 0.6, 0.85});
-    draw::setPenColor(draw::BLACK);
-    draw::setPenWidth(2);
-    draw::polygon({0.75, 0.95, 0.85}, {0.6, 0.6, 0.85});
+    canvas::setPenColor(canvas::ORANGE);
+    canvas::filledPolygon({0.75, 0.95, 0.85}, {0.6, 0.6, 0.85});
+    canvas::setPenColor(canvas::BLACK);
+    canvas::setPenWidth(2);
+    canvas::polygon({0.75, 0.95, 0.85}, {0.6, 0.6, 0.85});
 
     std::vector<double> xs, ys;
     for (int i = 0; i <= 100; ++i) {
         xs.push_back(0.05 + 0.9 * i / 100);
         ys.push_back(0.3 + 0.1 * std::sin(i * 0.25));
     }
-    draw::setPenColor(draw::MAGENTA);
-    draw::polyline(xs, ys);
+    canvas::setPenColor(canvas::MAGENTA);
+    canvas::polyline(xs, ys);
 
-    draw::setPenColor(draw::BLACK);
+    canvas::setPenColor(canvas::BLACK);
     for (int i = 0; i < 6; ++i) {
-        draw::setPenWidth(1 + i);
-        draw::point(0.1 + i * 0.16, 0.08);
+        canvas::setPenWidth(1 + i);
+        canvas::point(0.1 + i * 0.16, 0.08);
     }
 }
 
 void text() {
-    draw::setCanvasSize(400, 300);
-    draw::setPenColor(draw::LIGHT_GRAY);
-    draw::setPenWidth(1);
-    draw::line(0.5, 0, 0.5, 1);
-    for (double y : {0.85, 0.7, 0.55}) draw::line(0, y, 1, y);
+    canvas::setCanvasSize(400, 300);
+    canvas::setPenColor(canvas::LIGHT_GRAY);
+    canvas::setPenWidth(1);
+    canvas::line(0.5, 0, 0.5, 1);
+    for (double y : {0.85, 0.7, 0.55}) canvas::line(0, y, 1, y);
 
-    draw::setPenColor(draw::BLACK);
-    draw::text(0.5, 0.85, "Centered: Hello, draw!");
-    draw::textLeft(0.5, 0.7, "textLeft");
-    draw::textRight(0.5, 0.7, "textRight");
-    draw::setFontSize(12);
-    draw::text(0.5, 0.55, "Kerning AVAWAY  Latin-1 \xC3\x84\xC3\xB6\xC3\xBC  Greek \xCE\xA9\xCF\x80");
-    draw::setFontSize(28);
-    draw::setPenColor(draw::BOOK_BLUE);
-    draw::text(0.25, 0.25, "rotated", 30);
-    draw::text(0.6, 0.25, "90", 90);
-    draw::text(0.85, 0.25, "-45", -45);
+    canvas::setPenColor(canvas::BLACK);
+    canvas::text(0.5, 0.85, "Centered: Hello, draw!");
+    canvas::textLeft(0.5, 0.7, "textLeft");
+    canvas::textRight(0.5, 0.7, "textRight");
+    canvas::setFontSize(12);
+    canvas::text(0.5, 0.55, "Kerning AVAWAY  Latin-1 \xC3\x84\xC3\xB6\xC3\xBC  Greek \xCE\xA9\xCF\x80");
+    canvas::setFontSize(28);
+    canvas::setPenColor(canvas::BOOK_BLUE);
+    canvas::text(0.25, 0.25, "rotated", 30);
+    canvas::text(0.6, 0.25, "90", 90);
+    canvas::text(0.85, 0.25, "-45", -45);
 }
 
 void pictures() {
     // Make a 100 x 100 sprite with a transparent background, then draw it back.
-    draw::setCanvasSize(100, 100);
-    draw::clear(draw::rgb(0, 0, 0, 0));
-    draw::setPenColor(draw::RED);
-    draw::filledCircle(0.5, 0.5, 0.45);
-    draw::setPenColor(draw::WHITE);
-    draw::filledSquare(0.5, 0.5, 0.15);
-    draw::save("pictures-sprite.png");
+    canvas::setCanvasSize(100, 100);
+    canvas::clear(canvas::rgb(0, 0, 0, 0));
+    canvas::setPenColor(canvas::RED);
+    canvas::filledCircle(0.5, 0.5, 0.45);
+    canvas::setPenColor(canvas::WHITE);
+    canvas::filledSquare(0.5, 0.5, 0.15);
+    canvas::save("pictures-sprite.png");
 
-    draw::setCanvasSize(400, 300);
-    draw::clear(draw::LIGHT_GRAY);
-    draw::picture(0.15, 0.7, "pictures-sprite.png");                // natural size
-    draw::picture(0.45, 0.7, "pictures-sprite.png", 0.2, 0.1);      // squashed
-    draw::picture(0.8, 0.6, "pictures-sprite.png", 0.4, 0.6);       // enlarged
-    draw::picture(0.15, 0.2, "pictures-sprite.png", 0.05, 0.05);    // shrunk
-    draw::picture(1.0, 0.0, "pictures-sprite.png");                 // partly off canvas
+    canvas::setCanvasSize(400, 300);
+    canvas::clear(canvas::LIGHT_GRAY);
+    canvas::picture(0.15, 0.7, "pictures-sprite.png");                // natural size
+    canvas::picture(0.45, 0.7, "pictures-sprite.png", 0.2, 0.1);      // squashed
+    canvas::picture(0.8, 0.6, "pictures-sprite.png", 0.4, 0.6);       // enlarged
+    canvas::picture(0.15, 0.2, "pictures-sprite.png", 0.05, 0.05);    // shrunk
+    canvas::picture(1.0, 0.0, "pictures-sprite.png");                 // partly off canvas
 }
 
 void clipping() {
-    draw::setCanvasSize(300, 300);
-    draw::setScale(-1, 1);
-    draw::setPenColor(draw::ORANGE);
-    draw::filledCircle(1, -1, 0.4);        // corner
-    draw::filledCircle(-1.2, 0, 0.3);      // mostly outside
-    draw::filledPolygon({{-50, -50}, {0, -0.5}, {-50, 50}});  // far outside
-    draw::setPenColor(draw::BLACK);
-    draw::setPenWidth(3);
-    draw::line(-1e12, 0.5, 1e12, 0.6);     // huge coordinates
-    draw::circle(0, 0, 5);                 // larger than the canvas
+    canvas::setCanvasSize(300, 300);
+    canvas::setScale(-1, 1);
+    canvas::setPenColor(canvas::ORANGE);
+    canvas::filledCircle(1, -1, 0.4);        // corner
+    canvas::filledCircle(-1.2, 0, 0.3);      // mostly outside
+    canvas::filledPolygon({{-50, -50}, {0, -0.5}, {-50, 50}});  // far outside
+    canvas::setPenColor(canvas::BLACK);
+    canvas::setPenWidth(3);
+    canvas::line(-1e12, 0.5, 1e12, 0.6);     // huge coordinates
+    canvas::circle(0, 0, 5);                 // larger than the canvas
 
-    draw::setXscale(1, -1);                // flipped x axis
-    draw::setPenColor(draw::BOOK_BLUE);
-    draw::filledSquare(0.6, 0.6, 0.2);     // appears on the left
+    canvas::setXscale(1, -1);                // flipped x axis
+    canvas::setPenColor(canvas::BOOK_BLUE);
+    canvas::filledSquare(0.6, 0.6, 0.2);     // appears on the left
 }
 
 void aspect() {
     // A rectangular canvas: circles, squares and arcs stay round and square,
     // while ellipses and rectangles follow the separate x and y scales.
-    draw::setCanvasSize(400, 200);
-    draw::setPenColor(draw::BOOK_BLUE);
-    draw::filledCircle(0.1, 0.75, 0.07);
-    draw::filledSquare(0.3, 0.75, 0.07);
-    draw::setPenColor(draw::BOOK_RED);
-    draw::setPenWidth(3);
-    draw::circle(0.5, 0.75, 0.07);
-    draw::square(0.7, 0.75, 0.07);
-    draw::arc(0.9, 0.75, 0.07, 0, 270);
+    canvas::setCanvasSize(400, 200);
+    canvas::setPenColor(canvas::BOOK_BLUE);
+    canvas::filledCircle(0.1, 0.75, 0.07);
+    canvas::filledSquare(0.3, 0.75, 0.07);
+    canvas::setPenColor(canvas::BOOK_RED);
+    canvas::setPenWidth(3);
+    canvas::circle(0.5, 0.75, 0.07);
+    canvas::square(0.7, 0.75, 0.07);
+    canvas::arc(0.9, 0.75, 0.07, 0, 270);
 
     // A plot with very different x and y scales: the markers stay round.
-    draw::setXscale(0, 100);
-    draw::setYscale(-3, 1);
-    std::vector<draw::Point> curve;
+    canvas::setXscale(0, 100);
+    canvas::setYscale(-3, 1);
+    std::vector<canvas::Point> curve;
     for (int i = 0; i <= 100; ++i) curve.push_back({static_cast<double>(i), 0.8 * std::sin(i * 0.12) - 1.5});
-    draw::setPenColor(draw::GRAY);
-    draw::setPenWidth(1);
-    draw::polyline(curve);
-    draw::setPenColor(draw::BLACK);
-    for (int i = 0; i <= 100; i += 10) draw::filledCircle(i, curve[static_cast<std::size_t>(i)].y, 1.2);
-    draw::setPenColor(draw::ORANGE);
-    draw::filledEllipse(50, -2.6, 20, 0.25);  // follows the scales on purpose
+    canvas::setPenColor(canvas::GRAY);
+    canvas::setPenWidth(1);
+    canvas::polyline(curve);
+    canvas::setPenColor(canvas::BLACK);
+    for (int i = 0; i <= 100; i += 10) canvas::filledCircle(i, curve[static_cast<std::size_t>(i)].y, 1.2);
+    canvas::setPenColor(canvas::ORANGE);
+    canvas::filledEllipse(50, -2.6, 20, 0.25);  // follows the scales on purpose
 }
 
 void imageScene() {
@@ -201,25 +201,25 @@ void imageScene() {
             image::set(mirror, 99 - col, row, c);
         }
     }
-    draw::setCanvasSize(400, 200);
-    draw::clear(draw::LIGHT_GRAY);
-    draw::picture(0.125, 0.7, src);
-    draw::picture(0.375, 0.7, gray);
-    draw::picture(0.625, 0.7, mirror);
-    draw::picture(0.875, 0.5, src, 0.2, 0.9);  // scaled
+    canvas::setCanvasSize(400, 200);
+    canvas::clear(canvas::LIGHT_GRAY);
+    canvas::picture(0.125, 0.7, src);
+    canvas::picture(0.375, 0.7, gray);
+    canvas::picture(0.625, 0.7, mirror);
+    canvas::picture(0.875, 0.5, src, 0.2, 0.9);  // scaled
 
     // Canvas round trip: grab the canvas, invert the colors of the bottom
     // left area in the image, and draw it back.
-    draw::setPenColor(draw::BOOK_BLUE);
-    draw::filledCircle(0.2, 0.15, 0.1);
-    image::Image c = draw::canvas();
+    canvas::setPenColor(canvas::BOOK_BLUE);
+    canvas::filledCircle(0.2, 0.15, 0.1);
+    image::Image c = canvas::snapshot();
     for (int row = 140; row < 200; ++row) {
         for (int col = 0; col < 150; ++col) {
             image::Color p = image::get(c, col, row);
             image::set(c, col, row, image::rgb(255 - p.r, 255 - p.g, 255 - p.b));
         }
     }
-    draw::picture(0.5, 0.5, c);
+    canvas::picture(0.5, 0.5, c);
 }
 
 // --- comparison --------------------------------------------------------------
@@ -252,7 +252,7 @@ int compare(const std::string& scene, const std::string& actualPath, const std::
         return 1;
     }
     if (!load(referencePath, reference)) {
-        std::printf("cannot read reference %s (run with DRAW_UPDATE_REFERENCES=1 to create it)\n",
+        std::printf("cannot read reference %s (run with CANVAS_UPDATE_REFERENCES=1 to create it)\n",
                     referencePath.c_str());
         return 1;
     }
@@ -312,9 +312,9 @@ int main(int argc, char** argv) {
     const std::string referencePath = std::string(argv[2]) + "/" + scene + ".png";
 
     scenes.at(scene)();
-    draw::save(actualPath);
+    canvas::save(actualPath);
 
-    const char* update = std::getenv("DRAW_UPDATE_REFERENCES");
+    const char* update = std::getenv("CANVAS_UPDATE_REFERENCES");
     if (update && std::strcmp(update, "1") == 0) {
         if (!copyFile(actualPath, referencePath)) {
             std::printf("cannot write %s\n", referencePath.c_str());

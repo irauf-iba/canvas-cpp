@@ -4,7 +4,7 @@
 //
 // isKeyPressed() is not covered: SDL's keyboard state ignores injected events.
 
-#include <draw.hpp>
+#include <canvas.hpp>
 
 #include <SDL3/SDL.h>
 
@@ -38,25 +38,26 @@ void type(const char* text) {
     SDL_PushEvent(&e);
 }
 
-void press(SDL_Keycode key) {
+void press(SDL_Keycode key, bool repeat = false) {
     SDL_Event e{};
     e.type = SDL_EVENT_KEY_DOWN;
     e.key.windowID = SDL_GetWindowID(window());
     e.key.key = key;
     e.key.down = true;
+    e.key.repeat = repeat;
     SDL_PushEvent(&e);
 }
 
 std::string readTyped() {
     std::string s;
-    while (draw::hasNextKeyTyped()) s += draw::nextKeyTyped();
+    while (canvas::hasNextKeyTyped()) s += canvas::nextKeyTyped();
     return s;
 }
 
 // Starts a new frame with no pending input.
 void newFrame() {
-    draw::show();
-    draw::pause(0);
+    canvas::show();
+    canvas::pause(0);
 }
 
 double elapsedMs(Uint64 since) { return static_cast<double>(SDL_GetTicksNS() - since) / 1e6; }
@@ -64,26 +65,26 @@ double elapsedMs(Uint64 since) { return static_cast<double>(SDL_GetTicksNS() - s
 void testClick() {
     newFrame();
     click(0.75f, 0.25f);
-    CHECK(draw::mouseClicked());
-    CHECK(std::abs(draw::mouseX() - 0.5) < 0.01);  // scale is -1..1
-    CHECK(std::abs(draw::mouseY() - 0.5) < 0.01);
-    CHECK(!draw::mouseClicked());  // reported once
+    CHECK(canvas::mouseClicked());
+    CHECK(std::abs(canvas::mouseX() - 0.5) < 0.01);  // scale is -1..1
+    CHECK(std::abs(canvas::mouseY() - 0.5) < 0.01);
+    CHECK(!canvas::mouseClicked());  // reported once
 }
 
 void testUnreadClickIsDropped() {
     newFrame();
     click(0.5f, 0.5f);
-    CHECK(!draw::hasNextKeyTyped());  // reads the click event without consuming it
-    draw::show();
-    CHECK(!draw::mouseClicked());
+    CHECK(!canvas::hasNextKeyTyped());  // reads the click event without consuming it
+    canvas::show();
+    CHECK(!canvas::mouseClicked());
 }
 
 void testClickDuringShowSurvivesPause() {
     newFrame();
     click(0.5f, 0.5f);
-    draw::show();  // the click is read here, for the next frame
-    draw::pause(0);
-    CHECK(draw::mouseClicked());
+    canvas::show();  // the click is read here, for the next frame
+    canvas::pause(0);
+    CHECK(canvas::mouseClicked());
 }
 
 void testTypedKeys() {
@@ -119,9 +120,31 @@ void testReadKeysFreeSlots() {
 void testUnreadKeysAreDropped() {
     newFrame();
     type("x");
-    CHECK(draw::hasNextKeyTyped());
-    draw::show();
-    CHECK(!draw::hasNextKeyTyped());
+    CHECK(canvas::hasNextKeyTyped());
+    canvas::show();
+    CHECK(!canvas::hasNextKeyTyped());
+}
+
+void testWasKeyPressed() {
+    newFrame();
+    press(SDLK_LEFT);
+    press(SDLK_A);
+    CHECK(canvas::wasKeyPressed(canvas::Key::Left));
+    CHECK(!canvas::wasKeyPressed(canvas::Key::Left));  // once per press
+    CHECK(canvas::wasKeyPressed(canvas::Key::A));
+    CHECK(!canvas::wasKeyPressed(canvas::Key::Right));
+
+    newFrame();
+    press(SDLK_RSHIFT);
+    press(SDLK_UP, true);  // auto-repeat from holding a key doesn't count
+    CHECK(canvas::wasKeyPressed(canvas::Key::Shift));
+    CHECK(!canvas::wasKeyPressed(canvas::Key::Up));
+
+    newFrame();
+    press(SDLK_DOWN);
+    CHECK(!canvas::hasNextKeyTyped());  // reads the event without consuming the press
+    canvas::show();
+    CHECK(!canvas::wasKeyPressed(canvas::Key::Down));  // unread presses are dropped
 }
 
 void testPausePacing() {
@@ -130,7 +153,7 @@ void testPausePacing() {
     Uint64 start = SDL_GetTicksNS();
     for (int i = 0; i < 10; ++i) {
         SDL_DelayPrecise(5'000'000);
-        draw::pause(20);
+        canvas::pause(20);
     }
     double ms = elapsedMs(start);
     std::printf("10 x (5 ms work + pause(20)) took %.1f ms\n", ms);
@@ -139,10 +162,10 @@ void testPausePacing() {
 
 void testPauseAfterGap() {
     // A one-off pause after a long gap waits the full time.
-    draw::pause(0);
+    canvas::pause(0);
     SDL_DelayPrecise(300'000'000);
     Uint64 start = SDL_GetTicksNS();
-    draw::pause(100);
+    canvas::pause(100);
     double ms = elapsedMs(start);
     std::printf("pause(100) after a gap took %.1f ms\n", ms);
     CHECK(ms > 98 && ms < 140);
@@ -151,8 +174,8 @@ void testPauseAfterGap() {
 }  // namespace
 
 int main() {
-    draw::setScale(-1, 1);
-    draw::point(0, 0);  // opens the window
+    canvas::setScale(-1, 1);
+    canvas::point(0, 0);  // opens the window
 
     testClick();
     testUnreadClickIsDropped();
@@ -161,6 +184,7 @@ int main() {
     testKeyLimit();
     testReadKeysFreeSlots();
     testUnreadKeysAreDropped();
+    testWasKeyPressed();
     testPausePacing();
     testPauseAfterGap();
 

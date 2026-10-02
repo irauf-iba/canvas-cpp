@@ -1,5 +1,5 @@
 // image.cpp - implementation of image.hpp, plus the image file reading and
-// writing used by draw.cpp. Needs no window and does not use SDL.
+// writing used by canvas.cpp. Needs no window and does not use SDL.
 
 #include "image.hpp"
 
@@ -27,7 +27,7 @@
 // Pixels are read and written as raw RGBA bytes.
 static_assert(sizeof(image::Color) == 4, "Color must be exactly 4 bytes");
 
-namespace draw_internal {
+namespace canvas_internal {
 
 void checkImage(const image::Image& img, const char* module, const char* function) {
     if (img.width < 0 || img.height < 0 ||
@@ -39,10 +39,12 @@ void checkImage(const image::Image& img, const char* module, const char* functio
 }
 
 image::Image readImageFile(const std::string& filename, const char* module, const char* function) {
+    const std::string path = findInputFile(filename);
+    if (path.empty()) fail(module, std::string(function) + ": " + notFound(filename));
     int w, h, channels;
-    unsigned char* data = stbi_load(filename.c_str(), &w, &h, &channels, 4);
+    unsigned char* data = stbi_load(path.c_str(), &w, &h, &channels, 4);
     if (!data) {
-        fail(module, std::string(function) + ": cannot open '" + filename + "' (" +
+        fail(module, std::string(function) + ": cannot read '" + filename + "' (" +
                          stbi_failure_reason() + ")");
     }
     image::Image img;
@@ -75,18 +77,18 @@ void writeImageFile(const image::Image& img, const std::string& filename, const 
     if (!ok) fail(module, std::string(function) + ": cannot write '" + filename + "'");
 }
 
-}  // namespace draw_internal
+}  // namespace canvas_internal
 
 namespace image {
 
 namespace {
 
 void checkPixel(const Image& img, int col, int row, const char* function) {
-    draw_internal::checkImage(img, "image", function);
+    canvas_internal::checkImage(img, "image", function);
     auto outside = [&](const char* name, int value, int size) {
         std::string range = size == 0 ? "the image is empty"
                                       : "0 to " + std::to_string(size - 1);
-        draw_internal::fail("image", std::string(function) + ": " + name + " " +
+        canvas_internal::fail("image", std::string(function) + ": " + name + " " +
                                          std::to_string(value) + " is outside the image (" + range + ")");
     };
     if (col < 0 || col >= img.width) outside("col", col, img.width);
@@ -104,7 +106,7 @@ Image create(int width, int height) { return create(width, height, WHITE); }
 
 Image create(int width, int height, Color fill) {
     if (width < 0 || height < 0) {
-        draw_internal::fail("image", "create: width and height must not be negative");
+        canvas_internal::fail("image", "create: width and height must not be negative");
     }
     Image img;
     img.width = width;
@@ -114,11 +116,11 @@ Image create(int width, int height, Color fill) {
 }
 
 Image load(const std::string& filename) {
-    return draw_internal::readImageFile(filename, "image", "load");
+    return canvas_internal::readImageFile(filename, "image", "load");
 }
 
 void save(const Image& img, const std::string& filename) {
-    draw_internal::writeImageFile(img, filename, "image", "save");
+    canvas_internal::writeImageFile(img, filename, "image", "save");
 }
 
 Color get(const Image& img, int col, int row) {

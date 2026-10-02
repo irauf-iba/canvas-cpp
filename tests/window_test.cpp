@@ -11,7 +11,7 @@
 //   image-error          An error in the image module closes an open window
 //                        instead of keeping it open.
 
-#include <draw.hpp>
+#include <canvas.hpp>
 #include <image.hpp>
 
 #include <SDL3/SDL.h>
@@ -49,33 +49,33 @@ int main(int argc, char** argv) {
 
     if (test == "keep-open") {
         std::atexit(reportKeepOpen);
-        draw::filledCircle(0.5, 0.5, 0.25);
+        canvas::filledCircle(0.5, 0.5, 0.25);
         SDL_AddTimer(300, quitTimer, nullptr);
         mainReturned = SDL_GetTicksNS();
         return 0;
     }
 
     if (test == "close-in-pause") {
-        draw::filledCircle(0.5, 0.5, 0.25);
+        canvas::filledCircle(0.5, 0.5, 0.25);
         pushQuit();
-        draw::pause(2000);
+        canvas::pause(2000);
         std::printf("FAILED: still running after the window was closed\n");
         return 1;
     }
 
     if (test == "close-while-drawing") {
-        draw::enableDoubleBuffering();
-        draw::point(0.5, 0.5);
+        canvas::enableDoubleBuffering();
+        canvas::point(0.5, 0.5);
         pushQuit();
         Uint64 start = SDL_GetTicksNS();
-        while (SDL_GetTicksNS() - start < 3'000'000'000ULL) draw::filledCircle(0.5, 0.5, 0.1);
+        while (SDL_GetTicksNS() - start < 3'000'000'000ULL) canvas::filledCircle(0.5, 0.5, 0.1);
         std::printf("FAILED: still running after the window was closed\n");
         return 1;
     }
 
     if (test == "image-error") {
-        draw::filledCircle(0.5, 0.5, 0.25);
-        image::get(draw::canvas(), 512, 0);  // one past the right edge
+        canvas::filledCircle(0.5, 0.5, 0.25);
+        image::get(canvas::snapshot(), 512, 0);  // one past the right edge
         std::printf("FAILED: no error reported\n");
         return 1;
     }

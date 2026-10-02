@@ -9,7 +9,7 @@ return it from them. The module needs no window, so image programs can run
 anywhere, including on a grading server.
 
 ```cpp
-#include <draw.hpp>
+#include <canvas.hpp>
 #include <image.hpp>
 
 int main() {
@@ -24,8 +24,8 @@ int main() {
     }
     image::save(out, "gray.png");
 
-    draw::setCanvasSize(out.width, out.height);   // and show it
-    draw::picture(0.5, 0.5, out);
+    canvas::setCanvasSize(out.width, out.height);   // and show it
+    canvas::picture(0.5, 0.5, out);
 }
 ```
 
@@ -42,7 +42,7 @@ struct Image {
 ```
 
 Pixels are addressed by column and row. Column 0 is at the left and row 0 at
-the top, as in image files and image editors. This is the opposite of `draw`'s
+the top, as in image files and image editors. This is the opposite of `canvas`'s
 y axis, which points up. The difference is deliberate: rows and columns are
 positions in a grid, not coordinates.
 
@@ -60,9 +60,17 @@ check that the pixel is inside the image.
 | `image::get(img, col, row)` | The color of a pixel. |
 | `image::set(img, col, row, color)` | Changes the color of a pixel. |
 
+Files are looked up in the current folder first, and then in the folder of
+the program itself, as described in [canvas.md](canvas.md#pictures-and-the-canvas).
+
+**`using namespace`.** Write `image::get` and `image::set` in full. If a
+program has both `using namespace std;` and `using namespace image;`, then
+`set` could mean `image::set` or `std::set`, and the compiler stops with
+"reference to 'set' is ambiguous".
+
 ## Colors
 
-`image::Color` is the same type as `draw::Color`, from
+`image::Color` is the same type as `canvas::Color`, from
 [`include/color.hpp`](../include/color.hpp). It has `r`, `g`, `b` and `a`
 (opacity) components from 0 to 255:
 
@@ -70,17 +78,17 @@ check that the pixel is inside the image.
   0–255.
 - Compare colors with `==`.
 - The predefined colors are available under both names, e.g. `image::RED` is
-  `draw::RED`. [draw.md](draw.md#pen-colors-and-text) lists them.
+  `canvas::RED`. [canvas.md](canvas.md#pen-colors-and-text) lists them.
 
-## Using images with draw
+## Using images with canvas
 
 | Function | Does |
 |---|---|
-| `draw::picture(x, y, img)` | Draws the image centered at (x, y), at its natural size. Each image pixel covers exactly one canvas pixel. |
-| `draw::picture(x, y, img, width, height)` | The same, scaled to a width and height in user coordinates. |
-| `draw::canvas()` | A copy of the canvas as an image, e.g. to process a drawing. |
+| `canvas::picture(x, y, img)` | Draws the image centered at (x, y), at its natural size. Each image pixel covers exactly one canvas pixel. |
+| `canvas::picture(x, y, img, width, height)` | The same, scaled to a width and height in user coordinates. |
+| `canvas::snapshot()` | A copy of the canvas as an image, e.g. to process a drawing. |
 
-On a canvas the same size as an image, `draw::picture(0.5, 0.5, img)` fills
+On a canvas the same size as an image, `canvas::picture(0.5, 0.5, img)` fills
 the canvas exactly (with the default scale), reproducing the image pixel for
 pixel.
 
@@ -91,9 +99,9 @@ Mistakes stop the program with a message and exit status 1, for example:
 ```
 image: get: col 640 is outside the image (0 to 639)
 image: set: row -1 is outside the image (0 to 479)
-image: load: cannot open 'photo.png' (can't fopen)
+image: load: cannot open 'photo.png' (not in the current folder, /home/ana/lab3/build/)
 image: save: 'out.gif' must end in .png, .jpg or .bmp
-draw: picture: the image has 3 pixels, but width x height is 2 x 2
+canvas: picture: the image has 3 pixels, but width x height is 2 x 2
 ```
 
 The last one appears if a program changes `width`, `height` or `pixels` by
@@ -104,7 +112,7 @@ hand so that they no longer match.
 | Picture | image | Why |
 |---|---|---|
 | `Picture` class with `get` and `set` methods | `image::Image` struct with `image::get` and `image::set` | Same idea without classes. Images are values you can copy and return. |
-| `picture.show()` opens a window | `draw::picture(x, y, img)` | Images are shown on the `draw` canvas, together with any drawing. |
+| `picture.show()` opens a window | `canvas::picture(x, y, img)` | Images are shown on the `canvas` canvas, together with any drawing. |
 | `setOriginLowerLeft()` | Always top-left | One convention, the same as image files and editors. |
 | Exceptions | Message and exit | Clearer for beginners than an uncaught exception. |
 

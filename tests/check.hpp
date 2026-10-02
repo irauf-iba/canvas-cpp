@@ -1,7 +1,7 @@
 // Minimal test helpers: CHECK records a failure and continues.
 
-#ifndef DRAW_TESTS_CHECK_HPP
-#define DRAW_TESTS_CHECK_HPP
+#ifndef CANVAS_TESTS_CHECK_HPP
+#define CANVAS_TESTS_CHECK_HPP
 
 #include <cstdio>
 
@@ -28,4 +28,4 @@ inline int finish() {
     return 1;
 }
 
-#endif  // DRAW_TESTS_CHECK_HPP
+#endif  // CANVAS_TESTS_CHECK_HPP
