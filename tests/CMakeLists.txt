@@ -1,5 +1,7 @@
 # Tests run without a display: drawing tests use the library's headless mode,
-# and window and input tests use SDL's offscreen video driver.
+# and window and input tests use SDL's dummy video driver, which needs no
+# display or graphics library (the offscreen driver needs OpenGL, which
+# macOS doesn't provide for it).
 
 if(MSVC)
   set(CANVAS_TEST_WARNINGS /W4)
@@ -67,10 +69,10 @@ endforeach()
 add_test(NAME audio.exit-drain COMMAND audio_device_test exit-drain)
 set_tests_properties(audio.exit-drain PROPERTIES PASS_REGULAR_EXPRESSION "PASSED")
 set_tests_properties(audio.pacing audio.file audio.background audio.exit-drain PROPERTIES
-                     ENVIRONMENT "SDL_AUDIO_DRIVER=dummy;SDL_VIDEO_DRIVER=offscreen" TIMEOUT 20)
+                     ENVIRONMENT "SDL_AUDIO_DRIVER=dummy;SDL_VIDEO_DRIVER=dummy" TIMEOUT 20)
 add_test(NAME audio.close-at-exit COMMAND audio_device_test close-at-exit)
 set_tests_properties(audio.close-at-exit PROPERTIES PASS_REGULAR_EXPRESSION "PASSED" TIMEOUT 20
-                     ENVIRONMENT "SDL_AUDIO_DRIVER=dummy;SDL_VIDEO_DRIVER=offscreen;CANVAS_AUDIO_CAPTURE=audio_device_test_close.wav")
+                     ENVIRONMENT "SDL_AUDIO_DRIVER=dummy;SDL_VIDEO_DRIVER=dummy;CANVAS_AUDIO_CAPTURE=audio_device_test_close.wav")
 add_test(NAME audio.disk-output COMMAND audio_device_test disk-output)
 set_tests_properties(audio.disk-output PROPERTIES TIMEOUT 20 ENVIRONMENT
                      "SDL_AUDIO_DRIVER=disk;SDL_AUDIO_DISK_OUTPUT_FILE=audio_device_test_disk.raw")
@@ -78,7 +80,7 @@ set_tests_properties(audio.disk-output PROPERTIES TIMEOUT 20 ENVIRONMENT
 # Mouse and keyboard input, frame boundaries and pause() timing.
 canvas_test_executable(input_test SDL3::SDL3)
 add_test(NAME input COMMAND input_test)
-set_tests_properties(input PROPERTIES ENVIRONMENT SDL_VIDEO_DRIVER=offscreen TIMEOUT 30)
+set_tests_properties(input PROPERTIES ENVIRONMENT SDL_VIDEO_DRIVER=dummy TIMEOUT 30)
 
 # Window lifetime.
 canvas_test_executable(window_test SDL3::SDL3)
@@ -93,7 +95,7 @@ foreach(name IN ITEMS close-in-pause close-while-drawing)
 endforeach()
 set_tests_properties(window.keep-open window.close-in-pause window.close-while-drawing
                      window.image-error
-                     PROPERTIES ENVIRONMENT SDL_VIDEO_DRIVER=offscreen TIMEOUT 10)
+                     PROPERTIES ENVIRONMENT SDL_VIDEO_DRIVER=dummy TIMEOUT 10)
 
 # Each mistake stops the program with a helpful message.
 canvas_test_executable(error_test)

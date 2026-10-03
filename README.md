@@ -96,7 +96,7 @@ ctest --test-dir build --output-on-failure
 The tests need no display or speakers:
 
 - drawing tests run headless;
-- window and input tests use SDL's offscreen video driver;
+- window and input tests use SDL's `dummy` video driver;
 - sound tests use SDL's silent `dummy` driver and its `disk` driver, which
   writes the device output to a file.
 

@@ -1,6 +1,6 @@
 # Builds the library, examples and tests, and runs the tests, on Linux,
 # Windows (MSVC) and macOS, in Debug and Release. The tests need no display or
-# speakers: they use headless mode and SDL's offscreen and dummy drivers.
+# speakers: they use headless mode and SDL's dummy and disk drivers.
 
 name: CI
 

@@ -1,5 +1,5 @@
 // Input and frame tests. SDL events are injected with SDL_PushEvent, so this
-// runs without a person at the keyboard; with SDL_VIDEO_DRIVER=offscreen it
+// runs without a person at the keyboard; with SDL_VIDEO_DRIVER=dummy it
 // also runs without a display.
 //
 // isKeyPressed() is not covered: SDL's keyboard state ignores injected events.
