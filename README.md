@@ -10,9 +10,10 @@ by Princeton's [standard libraries](https://introcs.cs.princeton.edu/java/stdlib
 | `audio` | Sound as samples, sound files, background sound | StdAudio | [docs/audio.md](docs/audio.md) |
 | `chance` | Random numbers, the same on every computer for a given seed | StdRandom | [docs/chance.md](docs/chance.md) |
 
-**Students:** start with [docs/getting-started.md](docs/getting-started.md),
-which sets up the starter project in [`template`](template) with Visual
-Studio, VS Code, CLion or the command line.
+**Students:** copy the starter project in [`template`](template) and follow
+its one-page [README](template/README.md). The full
+[getting-started guide](docs/getting-started.md) covers Visual Studio,
+VS Code, CLion and the command line in more detail.
 
 ```cpp
 #include <canvas.hpp>
@@ -49,7 +50,7 @@ project(hello CXX)
 
 include(FetchContent)
 FetchContent_Declare(canvas
-  GIT_REPOSITORY https://github.com/<you>/stddrawlib   # TODO: real URL
+  GIT_REPOSITORY https://github.com/<you>/canvas-cpp   # TODO: real URL
   GIT_TAG        main
   GIT_SHALLOW    TRUE)
 FetchContent_MakeAvailable(canvas)
@@ -59,7 +60,7 @@ target_link_libraries(hello PRIVATE canvas::canvas)
 ```
 
 One target, `canvas::canvas`, provides all four modules. A copy of this
-repository next to the project works too, with `add_subdirectory(stddrawlib)`.
+repository next to the project works too, with `add_subdirectory(canvas-cpp)`.
 
 The first configure downloads SDL, and the first build compiles it, which takes
 a minute or two. Later builds reuse it.

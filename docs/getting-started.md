@@ -31,11 +31,13 @@ sudo apt install build-essential cmake ninja-build pkg-config \
 
 ## 2. Get the starter project
 
-Copy the [`template`](../template) folder and give it your own name. It
+Copy the [`template`](../template) folder and give it your own name. Its
+[`README.md`](../template/README.md) is a one-page version of this guide. It
 contains:
 
 - `main.cpp`: a small program (a ball that follows the mouse) to replace with
   your own;
+- `README.md`: the short version of this guide;
 - `CMakeLists.txt`: the build instructions, which download the library;
 - `data/`: a folder for images and sounds your program opens.
 

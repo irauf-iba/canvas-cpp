@@ -1,4 +1,4 @@
-# A program that uses the canvas, image and audio libraries.
+# A program that uses the canvas, image, audio and chance libraries.
 # Usually you only change the list of .cpp files in add_executable.
 
 cmake_minimum_required(VERSION 3.24)
@@ -7,7 +7,7 @@ project(my_program CXX)
 # Download the library (the first build takes a minute or two).
 include(FetchContent)
 FetchContent_Declare(canvas
-  GIT_REPOSITORY https://github.com/<you>/stddrawlib   # TODO: real URL
+  GIT_REPOSITORY https://github.com/<you>/canvas-cpp   # TODO: real URL
   GIT_TAG        main
   GIT_SHALLOW    TRUE)
 FetchContent_MakeAvailable(canvas)

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(stddrawlib VERSION 0.1.0 LANGUAGES C CXX)
+project(canvas-cpp VERSION 0.1.0 LANGUAGES C CXX)
 
 option(CANVAS_BUILD_EXAMPLES "Build the example programs" ${PROJECT_IS_TOP_LEVEL})
 option(CANVAS_BUILD_TESTS "Build the tests" ${PROJECT_IS_TOP_LEVEL})
