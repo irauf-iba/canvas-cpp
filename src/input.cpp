@@ -188,7 +188,7 @@ bool parseDouble(const std::string& s, double& value, std::string& reason) {
     return true;
 }
 
-std::string quoted(const std::string& s) { return "'" + s + "'"; }
+std::string inQuotes(const std::string& s) { return "'" + s + "'"; }
 
 std::string number(double x) {
     char buffer[32];
@@ -240,7 +240,7 @@ std::vector<int> readAllInts(std::istream& in) {
     std::string word, reason;
     int line, value;
     while (reader.next(word, line)) {
-        if (!parseInt(word, value, reason)) fail("readAllInts: " + reader.where(line) + ": " + quoted(word) + " " + reason);
+        if (!parseInt(word, value, reason)) fail("readAllInts: " + reader.where(line) + ": " + inQuotes(word) + " " + reason);
         values.push_back(value);
     }
     return values;
@@ -254,7 +254,7 @@ std::vector<double> readAllDoubles(std::istream& in) {
     double value;
     while (reader.next(word, line)) {
         if (!parseDouble(word, value, reason)) {
-            fail("readAllDoubles: " + reader.where(line) + ": " + quoted(word) + " " + reason);
+            fail("readAllDoubles: " + reader.where(line) + ": " + inQuotes(word) + " " + reason);
         }
         values.push_back(value);
     }
@@ -384,14 +384,14 @@ std::string trim(const std::string& s) {
 int toInt(const std::string& s) {
     int value;
     std::string reason;
-    if (!parseInt(trim(s), value, reason)) fail("toInt: " + quoted(s) + " " + reason);
+    if (!parseInt(trim(s), value, reason)) fail("toInt: " + inQuotes(s) + " " + reason);
     return value;
 }
 
 double toDouble(const std::string& s) {
     double value;
     std::string reason;
-    if (!parseDouble(trim(s), value, reason)) fail("toDouble: " + quoted(s) + " " + reason);
+    if (!parseDouble(trim(s), value, reason)) fail("toDouble: " + inQuotes(s) + " " + reason);
     return value;
 }
 
