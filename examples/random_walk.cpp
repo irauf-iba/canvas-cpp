@@ -14,6 +14,7 @@ int main() {
     canvas::setTitle("Random walk");
     canvas::setScale(-0.5, n - 0.5);
     canvas::enableDoubleBuffering();
+    canvas::setFrameRate(60);
     canvas::setPenWidth(3);
 
     int x = n / 2, y = n / 2;
@@ -27,10 +28,7 @@ int main() {
 
         canvas::setPenColor(canvas::rgb(step % 256, 80, 255 - step % 256));
         canvas::line(oldX, oldY, x, y);
-        if (step % 10 == 0) {
-            canvas::show();
-            canvas::pause(16);
-        }
+        if (step % 10 == 0) canvas::show();  // 10 steps per frame
     }
     canvas::show();
 }

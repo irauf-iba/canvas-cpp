@@ -190,24 +190,33 @@ void clear(Color color);
 
 // Normally each drawing call appears on screen right away. For smooth
 // animation, enable double buffering: drawing then happens off screen and
-// only appears when show() is called.
+// only appears when show() is called. With a frame rate, show() also waits
+// for the right moment, so the animation runs at the same speed everywhere:
 //
 //     canvas::enableDoubleBuffering();
+//     canvas::setFrameRate(60);
 //     while (true) {
 //         canvas::clear();
 //         ...draw the next frame...
 //         canvas::show();
-//         canvas::pause(16);   // about 60 frames per second
 //     }
 void enableDoubleBuffering();
 void disableDoubleBuffering();
 
-// Copies the canvas to the screen.
+// Makes show() wait so that frames appear framesPerSecond times a second,
+// evenly spaced. The time spent drawing a frame counts toward the wait, and
+// a frame that takes longer is shown at once. 0 turns it off (the default):
+// show() then doesn't wait. In headless mode show() never waits.
+void setFrameRate(double framesPerSecond);
+
+// Copies the canvas to the screen. With a frame rate set, first waits until
+// the next frame is due.
 void show();
 
 // Waits for ms milliseconds. In an animation loop, the time spent drawing
 // since the previous pause() counts toward the wait, so frames stay evenly
-// spaced even when drawing takes a while.
+// spaced even when drawing takes a while. (With setFrameRate(), an animation
+// loop needs no pause(); using both makes each frame wait twice.)
 void pause(int ms);
 
 // Saves the canvas to an image file. The format comes from the extension:

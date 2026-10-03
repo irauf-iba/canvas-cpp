@@ -6,6 +6,7 @@
 int main() {
     canvas::setTitle("My program");
     canvas::enableDoubleBuffering();
+    canvas::setFrameRate(60);
 
     while (true) {
         canvas::clear();
@@ -14,6 +15,5 @@ int main() {
         canvas::setPenColor(canvas::BLACK);
         canvas::text(0.5, 0.95, "Move the mouse. Close the window to quit.");
         canvas::show();
-        canvas::pause(16);
     }
 }

@@ -1,7 +1,8 @@
 // Rough timings of common operations. Not run by ctest.
 //
 // Run headless to measure drawing alone:  CANVAS_HEADLESS=1 ./benchmark
-// Run with a window to also measure animation frame pacing:  ./benchmark
+// Run with a window to also measure animation frame pacing, with pause(16)
+// and with setFrameRate(60):  ./benchmark
 
 #include <canvas.hpp>
 
@@ -27,12 +28,14 @@ void time(const char* label, F f) {
     std::printf("%-40s %8.2f ms\n", label, msSince(start));
 }
 
-void framePacing() {
-    // 1000 moving balls per frame, double buffered, pause(16).
+// 1000 moving balls per frame, double buffered, paced either by pause(16) or
+// by setFrameRate(60).
+void framePacing(bool useFrameRate) {
     canvas::enableDoubleBuffering();
+    canvas::setFrameRate(useFrameRate ? 60 : 0);
     std::vector<double> frames;
     auto last = Clock::now();
-    for (int f = 0; f < 130; ++f) {
+    for (int f = 0; f < 190; ++f) {
         canvas::clear();
         for (int i = 0; i < 1000; ++i) {
             double t = f * 0.02 + i;
@@ -40,17 +43,22 @@ void framePacing() {
             canvas::filledCircle(0.5 + 0.4 * std::cos(t), 0.5 + 0.4 * std::sin(1.3 * t), 0.01);
         }
         canvas::show();
-        canvas::pause(16);
+        if (!useFrameRate) canvas::pause(16);
         frames.push_back(msSince(last));
         last = Clock::now();
     }
     frames.erase(frames.begin(), frames.begin() + 10);  // warm-up
     std::sort(frames.begin(), frames.end());
     double sum = 0;
-    for (double f : frames) sum += f;
-    std::printf("animation, 1000 balls, pause(16): mean %.2f ms, median %.2f, p95 %.2f, max %.2f\n",
-                sum / static_cast<double>(frames.size()), frames[frames.size() / 2],
-                frames[frames.size() * 95 / 100], frames.back());
+    int long_frames = 0;
+    for (double f : frames) {
+        sum += f;
+        if (f > 25) ++long_frames;
+    }
+    std::printf("animation, 1000 balls, %-16s mean %.2f ms, median %.2f, p95 %.2f, max %.2f, frames > 25 ms: %d\n",
+                useFrameRate ? "setFrameRate(60):" : "pause(16):", sum / static_cast<double>(frames.size()),
+                frames[frames.size() / 2], frames[frames.size() * 95 / 100], frames.back(), long_frames);
+    canvas::setFrameRate(0);
     canvas::disableDoubleBuffering();
 }
 
@@ -82,7 +90,10 @@ int main() {
     });
 
     const char* headless = std::getenv("CANVAS_HEADLESS");
-    if (!(headless && *headless && *headless != '0')) framePacing();
+    if (!(headless && *headless && *headless != '0')) {
+        framePacing(false);
+        framePacing(true);
+    }
     std::fflush(stdout);
     std::_Exit(0);  // don't keep the window open
 }

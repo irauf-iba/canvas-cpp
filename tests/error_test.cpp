@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
         {"bad-canvas-size", [] { canvas::setCanvasSize(0, 100); }},
         {"missing-font", [] { canvas::setFont("no-such-font.ttf"); }},
         {"negative-pause", [] { canvas::pause(-1); }},
+        {"negative-frame-rate", [] { canvas::setFrameRate(-30); }},
         {"image-get-outside", [] { image::getPixel(image::create(5, 3), 0, 5); }},
         {"image-set-outside", [] { image::Image img = image::create(5, 3); image::setPixel(img, -1, 0, image::RED); }},
         {"image-index-outside", [] { image::Image img = image::create(5, 3); img[3][0] = image::RED; }},

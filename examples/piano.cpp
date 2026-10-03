@@ -34,6 +34,7 @@ int main() {
     canvas::setCanvasSize(640, 200);
     canvas::setXscale(0, N);
     canvas::enableDoubleBuffering();
+    canvas::setFrameRate(60);
 
     while (true) {
         int pressed = -1;
@@ -56,6 +57,5 @@ int main() {
             if (lit[i] > 0) --lit[i];
         }
         canvas::show();
-        canvas::pause(16);
     }
 }

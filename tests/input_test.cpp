@@ -160,6 +160,38 @@ void testPausePacing() {
     CHECK(ms > 190 && ms < 240);
 }
 
+void testFrameRate() {
+    // 10 frames at 50 per second with 5 ms of work each take 10 x 20 ms.
+    canvas::setFrameRate(50);
+    canvas::show();  // starts the schedule
+    Uint64 start = SDL_GetTicksNS();
+    for (int i = 0; i < 10; ++i) {
+        SDL_DelayPrecise(5'000'000);
+        canvas::show();
+    }
+    double ms = elapsedMs(start);
+    std::printf("10 frames at setFrameRate(50) with 5 ms work took %.1f ms\n", ms);
+    CHECK(ms > 190 && ms < 240);
+
+    // A late frame is shown at once; the next one waits a full interval.
+    SDL_DelayPrecise(35'000'000);
+    start = SDL_GetTicksNS();
+    canvas::show();
+    double late = elapsedMs(start);
+    start = SDL_GetTicksNS();
+    canvas::show();
+    double next = elapsedMs(start);
+    std::printf("late frame waited %.1f ms, the next %.1f ms\n", late, next);
+    CHECK(late < 5);
+    CHECK(next > 17 && next < 30);
+
+    // 0 turns it off.
+    canvas::setFrameRate(0);
+    start = SDL_GetTicksNS();
+    for (int i = 0; i < 5; ++i) canvas::show();
+    CHECK(elapsedMs(start) < 10);
+}
+
 void testPauseAfterGap() {
     // A one-off pause after a long gap waits the full time.
     canvas::pause(0);
@@ -186,6 +218,7 @@ int main() {
     testUnreadKeysAreDropped();
     testWasKeyPressed();
     testPausePacing();
+    testFrameRate();
     testPauseAfterGap();
 
     // Close the window so the program can end instead of waiting for the user.

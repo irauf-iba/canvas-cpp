@@ -107,6 +107,9 @@ struct State {
     Uint64 lastPump = 0;
     bool hasPaused = false;
     Uint64 pauseEnd = 0;
+    Uint64 frameInterval = 0;  // ns between frames for setFrameRate(); 0 if off
+    bool hasFrame = false;
+    Uint64 lastFrame = 0;      // when the previous frame was due
 
     // Input. Clicks and typed keys belong to the current frame; they are
     // discarded when the program next calls show() or pause().
@@ -1367,8 +1370,36 @@ void disableDoubleBuffering() {
     if (s.initialized) present();
 }
 
+void setFrameRate(double framesPerSecond) {
+    checkFinite("setFrameRate", {framesPerSecond});
+    checkNonNegative("setFrameRate", "the frame rate", framesPerSecond);
+    State& s = st();
+    s.frameInterval = framesPerSecond > 0 ? static_cast<Uint64>(std::llround(1e9 / framesPerSecond)) : 0;
+    s.hasFrame = false;
+}
+
 void show() {
     endFrame();
+    State& s = st();
+    if (s.frameInterval > 0 && !s.headless) {
+        // Wait until one frame interval after the previous frame was due, so
+        // frames are evenly spaced. A frame that is late is shown at once,
+        // and the schedule restarts from it rather than trying to catch up.
+        const Uint64 start = SDL_GetTicksNS();
+        const Uint64 due = s.lastFrame + s.frameInterval;
+        if (s.hasFrame && due > start) {
+            Uint64 now = start;
+            while (now < due) {
+                pollEvents();
+                SDL_DelayPrecise(std::min<Uint64>(due - now, 10'000'000));
+                now = SDL_GetTicksNS();
+            }
+            s.lastFrame = due;
+        } else {
+            s.lastFrame = start;
+        }
+        s.hasFrame = true;
+    }
     present();
     pollEvents();
 }

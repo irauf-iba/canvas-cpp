@@ -38,6 +38,11 @@ add_test(NAME chance COMMAND chance_test)
 add_test(NAME chance.seed-from-environment COMMAND chance_test env)
 set_tests_properties(chance.seed-from-environment PROPERTIES ENVIRONMENT CANVAS_SEED=12345)
 
+# Headless mode: nothing waits and no input is reported (what graders rely on).
+canvas_test_executable(headless_test)
+add_test(NAME headless COMMAND headless_test)
+set_tests_properties(headless PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1 TIMEOUT 10)
+
 # text() with numbers and characters.
 canvas_test_executable(text_test)
 add_test(NAME text COMMAND text_test)
@@ -110,6 +115,7 @@ set(error_cases
   "bad-canvas-size|setCanvasSize: width and height must be positive"
   "missing-font|setFont: cannot open 'no-such-font.ttf'"
   "negative-pause|pause: ms must not be negative"
+  "negative-frame-rate|setFrameRate: the frame rate must not be negative"
   "image-get-outside|image: getPixel: col 5 is outside the image (0 to 4)"
   "image-set-outside|image: setPixel: row -1 is outside the image (0 to 2)"
   "image-index-outside|image: [row][col]: row 3 is outside the image (0 to 2)"

@@ -1,4 +1,5 @@
-// A ball bouncing inside the window. Shows the double-buffered animation loop.
+// A ball bouncing inside the window. Shows the animation loop: double
+// buffering and a frame rate.
 
 #include <cmath>
 #include <canvas.hpp>
@@ -6,6 +7,7 @@
 int main() {
     canvas::setScale(-1.0, 1.0);
     canvas::enableDoubleBuffering();
+    canvas::setFrameRate(60);
 
     double x = 0.48, y = 0.86;      // position
     double vx = 0.015, vy = 0.023;  // velocity per frame
@@ -21,6 +23,5 @@ int main() {
         canvas::setPenColor(canvas::BLACK);
         canvas::filledCircle(x, y, radius);
         canvas::show();
-        canvas::pause(16);
     }
 }

@@ -129,25 +129,34 @@ applies to `setFont` and to the `image` and `audio` modules.
 |---|---|
 | `clear()`, `clear(color)` | Fills the canvas (default `WHITE`). |
 | `enableDoubleBuffering()`, `disableDoubleBuffering()` | Draw off screen until `show()`. |
-| `show()` | Copies the canvas to the screen. |
+| `setFrameRate(fps)` | Makes `show()` wait so frames appear `fps` times a second (default 0: no waiting). |
+| `show()` | Copies the canvas to the screen; with a frame rate, first waits until the frame is due. |
 | `pause(ms)` | Waits. |
 
 Normally each drawing call appears on screen right away. For smooth animation,
-enable double buffering so that each frame appears all at once:
+enable double buffering so that each frame appears all at once, and set a
+frame rate:
 
 ```cpp
 canvas::enableDoubleBuffering();
+canvas::setFrameRate(60);
 while (true) {
     canvas::clear();
     // ...draw the next frame...
-    canvas::show();
-    canvas::pause(16);   // about 60 frames per second
+    canvas::show();      // waits until the next frame is due
 }
 ```
 
-In an animation loop the time spent drawing counts toward `pause()`, so frames
-stay evenly spaced even when drawing takes a while. A one-off `pause(2000)`
-still waits two full seconds.
+- **Same speed everywhere.** Without a frame rate, a loop runs as fast as the
+  screen refreshes, which is 2.4 times as fast on a 144 Hz laptop as on a
+  60 Hz monitor. With a frame rate it runs at the same speed everywhere.
+- **Drawing time counts.** The time spent drawing counts toward the wait, so
+  frames stay evenly spaced. A frame that takes longer than its slot is shown
+  at once; the animation then just runs slower.
+- **`pause(ms)`** is for waiting in other places, for example to show a
+  message for two seconds. In a loop with a frame rate, don't also call
+  `pause()`: each frame would wait twice. (Without a frame rate, a StdDraw-style
+  `show(); pause(16);` loop works too.)
 
 ### Mouse and keyboard
 
@@ -238,6 +247,7 @@ canvas: nextKeyTyped: no key was typed (check hasNextKeyTyped() first)
 | Typed keys queue forever | Dropped at the end of each frame | A lagging program doesn't replay old keys. |
 | Circles and squares stretch when the x and y scales differ | Always round and square; size in x units | A circle should look like a circle, and plot markers stay dots. |
 | `pause(ms)` sleeps | `pause(ms)` keeps a steady frame rate | Smooth animation even when drawing takes time. |
+| `show(); pause(16);` in every loop | `setFrameRate(60)` once | Says what is meant, and runs at the same speed on every screen. |
 | Exceptions | Message and exit | Clearer for beginners than an uncaught exception. |
 
 ## How it works
