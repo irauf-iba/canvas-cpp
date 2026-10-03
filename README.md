@@ -50,7 +50,7 @@ project(hello CXX)
 
 include(FetchContent)
 FetchContent_Declare(canvas
-  GIT_REPOSITORY https://github.com/<you>/canvas-cpp   # TODO: real URL
+  GIT_REPOSITORY https://github.com/irauf-iba/canvas-cpp
   GIT_TAG        main
   GIT_SHALLOW    TRUE)
 FetchContent_MakeAvailable(canvas)
@@ -184,9 +184,9 @@ third_party/font/      Noto Sans subset and its license
 ## Status
 
 The library works and is tested on Linux (Wayland, PipeWire), both with a
-window and headless. The CI workflow builds and tests on Windows (MSVC) and
-macOS as well, but has not run yet, because the repository isn't on GitHub
-yet. Not yet tested:
+window and headless. The CI workflow also builds and tests on Windows (MSVC)
+and macOS; see the repository's Actions tab for the latest results. Not yet
+tested:
 
 - Windows and macOS beyond what the CI covers: real windows, high-DPI
   displays and sound devices.

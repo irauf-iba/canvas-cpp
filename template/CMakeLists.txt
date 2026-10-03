@@ -7,7 +7,7 @@ project(my_program CXX)
 # Download the library (the first build takes a minute or two).
 include(FetchContent)
 FetchContent_Declare(canvas
-  GIT_REPOSITORY https://github.com/<you>/canvas-cpp   # TODO: real URL
+  GIT_REPOSITORY https://github.com/irauf-iba/canvas-cpp
   GIT_TAG        main
   GIT_SHALLOW    TRUE)
 FetchContent_MakeAvailable(canvas)

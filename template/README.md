@@ -79,6 +79,11 @@ The library stops with a message that says what happened, for example
   first built. Install them, delete the `build` folder and build again.
 
 The library guides explain every function:
-[canvas](../docs/canvas.md), [image](../docs/image.md),
-[audio](../docs/audio.md) and [chance](../docs/chance.md). More detail on
-setup and problems is in [getting started](../docs/getting-started.md).
+
+- [canvas](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/canvas.md): drawing, animation, mouse and keyboard
+- [image](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/image.md): images, pixel by pixel
+- [audio](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/audio.md): sound
+- [chance](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/chance.md): random numbers
+
+More detail on setup and problems is in
+[getting started](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/getting-started.md).
