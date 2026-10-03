@@ -54,14 +54,15 @@ else()
       continue()
     endif()
     if(MSVC)
-      # SDL sets its own /W3; remove it first, since MSVC warns (D9025) when
-      # /w overrides another warning level.
+      # SDL sets its own /W3; remove it, since MSVC warns (D9025) when one
+      # warning level overrides another. /W0 rather than /w, because Visual
+      # Studio project files only turn it into their "no warnings" setting.
       get_target_property(sdl_options ${sdl_target} COMPILE_OPTIONS)
       if(sdl_options)
         list(FILTER sdl_options EXCLUDE REGEX "/W[0-4]")
         set_property(TARGET ${sdl_target} PROPERTY COMPILE_OPTIONS "${sdl_options}")
       endif()
-      target_compile_options(${sdl_target} PRIVATE /w)
+      target_compile_options(${sdl_target} PRIVATE /W0)
     else()
       target_compile_options(${sdl_target} PRIVATE -w)
     endif()
