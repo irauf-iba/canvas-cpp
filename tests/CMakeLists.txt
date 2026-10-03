@@ -13,6 +13,8 @@ function(canvas_test_executable name)
   add_executable(${name} ${name}.cpp)
   target_link_libraries(${name} PRIVATE canvas::canvas ${ARGN})
   target_compile_options(${name} PRIVATE ${CANVAS_TEST_WARNINGS})
+  # getenv and fopen are fine in tests; no "unsafe function" warnings.
+  target_compile_definitions(${name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 endfunction()
 
 # The public headers compile cleanly, each on its own, with strict warnings

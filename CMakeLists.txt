@@ -50,8 +50,20 @@ else()
   # Some compilers warn about SDL's own code (e.g. new Clang checks). Those
   # warnings aren't the student's to fix, so don't show them in their build.
   foreach(sdl_target IN ITEMS SDL3-static SDL3-shared SDL3_test SDL_uclibc)
-    if(TARGET ${sdl_target})
-      target_compile_options(${sdl_target} PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/w,-w>)
+    if(NOT TARGET ${sdl_target})
+      continue()
+    endif()
+    if(MSVC)
+      # SDL sets its own /W3; remove it first, since MSVC warns (D9025) when
+      # /w overrides another warning level.
+      get_target_property(sdl_options ${sdl_target} COMPILE_OPTIONS)
+      if(sdl_options)
+        list(FILTER sdl_options EXCLUDE REGEX "/W[0-4]")
+        set_property(TARGET ${sdl_target} PROPERTY COMPILE_OPTIONS "${sdl_options}")
+      endif()
+      target_compile_options(${sdl_target} PRIVATE /w)
+    else()
+      target_compile_options(${sdl_target} PRIVATE -w)
     endif()
   endforeach()
 endif()
