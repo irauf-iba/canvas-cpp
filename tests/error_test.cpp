@@ -7,12 +7,15 @@
 #include <canvas.hpp>
 #include <chance.hpp>
 #include <image.hpp>
+#include <input.hpp>
+#include <output.hpp>
 
 #include <cmath>
 #include <cstdio>
 #include <fstream>
 #include <functional>
 #include <map>
+#include <sstream>
 #include <string>
 
 int main(int argc, char** argv) {
@@ -44,6 +47,25 @@ int main(int argc, char** argv) {
         }},
         {"audio-save-format", [] { audio::save("out.mp3", {0.0}); }},
         {"audio-play-missing", [] { audio::play("no-such-file.mp3"); }},
+        {"input-bad-int", [] {
+            std::ofstream("bad.txt") << "1 2\n3 abc\n";
+            input::fromFile("bad.txt");
+            input::readAllInts();
+        }},
+        {"input-too-large", [] {
+            std::ofstream("big.txt") << "99999999999\n";
+            input::fromFile("big.txt");
+            input::readAllInts();
+        }},
+        {"input-bad-double", [] {
+            std::istringstream in("2.5\n\n1,5\n");  // a decimal comma
+            input::readAllDoubles(in);
+        }},
+        {"input-ask-range", [] { input::askInt("Pick? ", 5, 1); }},
+        {"input-to-int", [] { input::toInt("3.5"); }},
+        {"input-to-double", [] { input::toDouble("abc"); }},
+        {"input-missing-file", [] { input::fromFile("no-such-file.txt"); }},
+        {"output-cannot-write", [] { output::toFile("no-such-folder/out.txt"); }},
         {"chance-empty-range", [] { chance::uniform(5, 5); }},
         {"chance-bad-n", [] { chance::uniform(0); }},
         {"chance-bad-p", [] { chance::bernoulli(1.5); }},

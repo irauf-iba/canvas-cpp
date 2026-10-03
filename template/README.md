@@ -55,6 +55,7 @@ their namespace:
 #include <image.hpp>    // images, pixel by pixel
 #include <audio.hpp>    // sound
 #include <chance.hpp>   // random numbers
+#include <input.hpp>    // help with std::cin: input::askInt and more
 
 int main() {
     canvas::setPenColor(canvas::BOOK_BLUE);
@@ -84,6 +85,7 @@ The library guides explain every function:
 - [image](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/image.md): images, pixel by pixel
 - [audio](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/audio.md): sound
 - [chance](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/chance.md): random numbers
+- [input](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/input.md): help with `std::cin`, and asking questions
 
 More detail on setup and problems is in
 [getting started](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/getting-started.md).

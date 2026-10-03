@@ -75,7 +75,8 @@ Edit `main.cpp`. The guides explain each library:
 - [canvas](canvas.md): drawing, animation, mouse and keyboard;
 - [image](image.md): images, pixel by pixel;
 - [audio](audio.md): sound;
-- [chance](chance.md): random numbers.
+- [chance](chance.md): random numbers;
+- [input](input.md): help with `std::cin`, and asking questions with checked answers.
 
 To split your program into several files, add the other `.cpp` files to the
 `add_executable` line in `CMakeLists.txt`:

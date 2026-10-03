@@ -49,10 +49,10 @@ else()
 endif()
 
 # ---------------------------------------------------------------------------
-# canvas library (the canvas, image, audio and chance modules)
+# canvas library (the canvas, image, audio, chance, input and output modules)
 # ---------------------------------------------------------------------------
 
-add_library(canvas STATIC src/canvas.cpp src/image.cpp src/audio.cpp src/chance.cpp src/common.cpp)
+add_library(canvas STATIC src/canvas.cpp src/image.cpp src/audio.cpp src/chance.cpp src/input.cpp src/common.cpp)
 add_library(canvas::canvas ALIAS canvas)
 
 target_include_directories(canvas PUBLIC include)

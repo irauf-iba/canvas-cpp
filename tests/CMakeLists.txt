@@ -19,7 +19,7 @@ endfunction()
 # treated as errors.
 canvas_test_executable(header_test)
 target_sources(header_test PRIVATE header_color_test.cpp header_image_test.cpp header_audio_test.cpp
-                                   header_chance_test.cpp)
+                                   header_chance_test.cpp header_input_test.cpp)
 target_compile_options(header_test PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/WX,-Werror>)
 add_test(NAME header COMMAND header_test)
 
@@ -42,6 +42,27 @@ set_tests_properties(chance.seed-from-environment PROPERTIES ENVIRONMENT CANVAS_
 canvas_test_executable(headless_test)
 add_test(NAME headless COMMAND headless_test)
 set_tests_properties(headless PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1 TIMEOUT 10)
+
+# Input helpers: fromFile with plain std::cin and the helpers on streams;
+# then real standard input, connected to a file by run_with_input.cmake
+# (ctest can't redirect input itself). No test reads the terminal.
+canvas_test_executable(reading_test)
+add_test(NAME reading COMMAND reading_test)
+function(add_stdin_test name program input pattern)
+  add_test(NAME ${name}
+           COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:${program}>
+                   -DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/data/${input}
+                   -P ${CMAKE_CURRENT_SOURCE_DIR}/run_with_input.cmake)
+  set_tests_properties(${name} PROPERTIES PASS_REGULAR_EXPRESSION "${pattern}")
+endfunction()
+canvas_test_executable(stdin_test)
+add_stdin_test(reading.stdin stdin_test stdin_input.txt "age=25 name=\\[Ali Khan\\] count=5 sum=15")
+canvas_test_executable(ask_test)
+add_stdin_test(ask ask_test ask_input.txt "PASSED")
+add_stdin_test(ask.no-more-input ask_test empty_input.txt "input: askInt: no more input")
+canvas_test_executable(output_test)
+add_test(NAME output COMMAND output_test)
+set_tests_properties(output PROPERTIES PASS_REGULAR_EXPRESSION "PASSED")
 
 # text() with numbers and characters.
 canvas_test_executable(text_test)
@@ -130,6 +151,14 @@ set(error_cases
   "audio-read-invalid|audio: read: 'not-audio.wav' is not a valid WAV file"
   "audio-save-format|audio: save: 'out.mp3' must end in .wav"
   "audio-play-missing|audio: play: cannot open 'no-such-file.mp3'"
+  "input-bad-int|input: readAllInts: bad.txt, line 2: 'abc' is not a whole number"
+  "input-too-large|input: readAllInts: big.txt, line 1: '99999999999' is too large for an int"
+  "input-bad-double|input: readAllDoubles: line 3: '1,5' is not a number"
+  "input-ask-range|input: askInt: min must not be greater than max"
+  "input-to-int|input: toInt: '3.5' is not a whole number"
+  "input-to-double|input: toDouble: 'abc' is not a number"
+  "input-missing-file|input: fromFile: cannot open 'no-such-file.txt'"
+  "output-cannot-write|output: toFile: cannot write 'no-such-folder/out.txt'"
   "chance-empty-range|chance: uniform: the range 5 to 5 is empty (b must be greater than a)"
   "chance-bad-n|chance: uniform: n must be positive, not 0"
   "chance-bad-p|chance: bernoulli: p must be between 0 and 1"
@@ -141,7 +170,7 @@ foreach(entry IN LISTS error_cases)
   string(SUBSTRING "${entry}" 0 ${bar} name)
   math(EXPR start "${bar} + 1")
   string(SUBSTRING "${entry}" ${start} -1 message)
-  if(NOT message MATCHES "^(canvas|image|audio|chance): ")
+  if(NOT message MATCHES "^(canvas|image|audio|chance|input|output): ")
     set(message "canvas: ${message}")
   endif()
   string(REGEX REPLACE "([][.*+?()^$])" "\\\\\\1" pattern "${message}")
