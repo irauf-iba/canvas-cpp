@@ -46,6 +46,14 @@ else()
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   FetchContent_MakeAvailable(SDL3)
+
+  # Some compilers warn about SDL's own code (e.g. new Clang checks). Those
+  # warnings aren't the student's to fix, so don't show them in their build.
+  foreach(sdl_target IN ITEMS SDL3-static SDL3-shared SDL3_test SDL_uclibc)
+    if(TARGET ${sdl_target})
+      target_compile_options(${sdl_target} PRIVATE $<IF:$<C_COMPILER_ID:MSVC>,/w,-w>)
+    endif()
+  endforeach()
 endif()
 
 # ---------------------------------------------------------------------------
