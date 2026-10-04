@@ -21,7 +21,8 @@ endfunction()
 # treated as errors.
 canvas_test_executable(header_test)
 target_sources(header_test PRIVATE header_color_test.cpp header_image_test.cpp header_audio_test.cpp
-                                   header_chance_test.cpp header_input_test.cpp header_turtle_test.cpp)
+                                   header_chance_test.cpp header_input_test.cpp header_turtle_test.cpp
+                                   header_stats_test.cpp)
 target_compile_options(header_test PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/WX,-Werror>)
 add_test(NAME header COMMAND header_test)
 
@@ -29,7 +30,7 @@ add_test(NAME header COMMAND header_test)
 canvas_test_executable(render_test)
 target_include_directories(render_test SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)
 target_include_directories(render_test PRIVATE ${PROJECT_SOURCE_DIR}/src)  # screenImage()
-foreach(scene IN ITEMS shapes polygons text pictures clipping aspect image turtle overlay)
+foreach(scene IN ITEMS shapes polygons text pictures clipping aspect image turtle overlay stats)
   add_test(NAME render.${scene}
            COMMAND render_test ${scene} ${CMAKE_CURRENT_SOURCE_DIR}/reference)
   set_tests_properties(render.${scene} PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
@@ -40,6 +41,11 @@ canvas_test_executable(chance_test)
 add_test(NAME chance COMMAND chance_test)
 add_test(NAME chance.seed-from-environment COMMAND chance_test env)
 set_tests_properties(chance.seed-from-environment PROPERTIES ENVIRONMENT CANVAS_SEED=12345)
+
+# Statistics: the numbers, and where the plots draw.
+canvas_test_executable(stats_test)
+add_test(NAME stats COMMAND stats_test)
+set_tests_properties(stats PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
 
 # Headless mode: nothing waits and no input is reported (what graders rely on).
 canvas_test_executable(headless_test)
@@ -190,13 +196,17 @@ set(error_cases
   "chance-bad-p|chance: bernoulli: p must be between 0 and 1"
   "chance-bad-sum|chance: discrete: probabilities must add up to 1"
   "chance-bad-seed|chance: CANVAS_SEED must be a whole number, not 'abc'"
+  "stats-empty|stats: mean: the vector is empty"
+  "stats-one-value|stats: stddev: needs at least 2 values, not 1"
+  "stats-nan|stats: median: values[1] is NaN"
+  "stats-plot-infinite|stats: plotBars: values[0] is infinite"
 )
 foreach(entry IN LISTS error_cases)
   string(FIND "${entry}" "|" bar)
   string(SUBSTRING "${entry}" 0 ${bar} name)
   math(EXPR start "${bar} + 1")
   string(SUBSTRING "${entry}" ${start} -1 message)
-  if(NOT message MATCHES "^(canvas|turtle|image|audio|chance|input|output): ")
+  if(NOT message MATCHES "^(canvas|turtle|image|audio|chance|stats|input|output): ")
     set(message "canvas: ${message}")
   endif()
   string(REGEX REPLACE "([][.*+?()^$])" "\\\\\\1" pattern "${message}")

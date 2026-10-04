@@ -1,6 +1,7 @@
 // Flips n coins and counts the heads, many times over, then draws a
 // histogram of how often each number of heads came up, together with the
-// normal (Gaussian) curve that the histogram approaches.
+// normal (Gaussian) curve that the histogram approaches. The mean and
+// standard deviation of the experiments come close to the curve's.
 //
 //     ./bernoulli            (20 coins, 10000 times)
 //     ./bernoulli 50 100000
@@ -11,8 +12,10 @@
 #include <canvas.hpp>
 #include <chance.hpp>
 #include <input.hpp>
+#include <stats.hpp>
 
 #include <cmath>
+#include <cstdio>
 #include <vector>
 
 int main(int argc, char** argv) {
@@ -20,14 +23,15 @@ int main(int argc, char** argv) {
     int n = argc > 1 ? input::toInt(argv[1]) : 20;
     int trials = argc > 2 ? input::toInt(argv[2]) : 10000;
 
+    // heads[t]: how many of the n coins came up heads in experiment t.
     // counts[k]: how many times exactly k of the n coins came up heads.
+    std::vector<int> heads(trials, 0);
     std::vector<int> counts(n + 1, 0);
     for (int t = 0; t < trials; ++t) {
-        int heads = 0;
         for (int i = 0; i < n; ++i) {
-            if (chance::bernoulli(0.5)) ++heads;
+            if (chance::bernoulli(0.5)) ++heads[t];
         }
-        ++counts[heads];
+        ++counts[heads[t]];
     }
 
     // The normal curve with the same mean and standard deviation.
@@ -53,5 +57,9 @@ int main(int argc, char** argv) {
     canvas::polyline(x, y);
 
     canvas::setPenColor(canvas::BLACK);
-    canvas::text(mean, 1.15 * peak, std::to_string(n) + " coins, " + std::to_string(trials) + " times");
+    canvas::text(mean, 1.17 * peak, std::to_string(n) + " coins, " + std::to_string(trials) + " times");
+    char summary[100];
+    std::snprintf(summary, sizeof summary, "mean %.2f (curve %.2f), standard deviation %.2f (curve %.2f)",
+                  stats::mean(heads), mean, stats::stddev(heads), sd);
+    canvas::text(mean, 1.09 * peak, summary);
 }

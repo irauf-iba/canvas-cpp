@@ -8,6 +8,7 @@
 // On failure, <scene>-diff.png marks the differing pixels in red.
 
 #include <canvas.hpp>
+#include <stats.hpp>
 #include <turtle.hpp>
 
 #include "internal.hpp"  // screenImage(), for the overlay scene
@@ -290,6 +291,20 @@ void overlayScene() {
     canvas::watch("state", "jumping");
 }
 
+void statsScene() {
+    // The three plots of one set of values; with a 0 among them, all three
+    // fit the same scale.
+    const std::vector<double> values = {0, 3, 5, 2, 8, 6, 4, 7, 1, 5};
+    canvas::setCanvasSize(400, 300);
+    canvas::setPenColor(canvas::BOOK_LIGHT_BLUE);
+    stats::plotBars(values);
+    canvas::setPenColor(canvas::BOOK_RED);
+    canvas::setPenWidth(2);
+    stats::plotLines(values);
+    canvas::setPenColor(canvas::BLACK);
+    stats::plotPoints(values);
+}
+
 // --- comparison --------------------------------------------------------------
 
 struct Pixels {
@@ -368,6 +383,7 @@ int main(int argc, char** argv) {
         {"shapes", shapes}, {"polygons", polygons}, {"text", text},
         {"pictures", pictures}, {"clipping", clipping}, {"aspect", aspect},
         {"image", imageScene}, {"turtle", turtleScene}, {"overlay", overlayScene},
+        {"stats", statsScene},
     };
     if (argc != 3 || scenes.count(argv[1]) == 0) {
         std::printf("usage: render_test <scene> <reference-dir>\nscenes:");

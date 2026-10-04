@@ -213,8 +213,9 @@ what `std::cin` lacks.
 
 ## Examples
 
-- [`examples/average.cpp`](../examples/average.cpp): the count, average,
-  smallest and largest of numbers on standard input:
+- [`examples/average.cpp`](../examples/average.cpp): the average, median,
+  standard deviation, smallest and largest of numbers on standard input,
+  with [stats](stats.md):
   `./average < examples/data/numbers.txt`.
 - [`examples/grades.cpp`](../examples/grades.cpp): reads `name,score` lines
   with `getLine`, `split` and `toInt`:

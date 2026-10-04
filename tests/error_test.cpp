@@ -9,6 +9,7 @@
 #include <image.hpp>
 #include <input.hpp>
 #include <output.hpp>
+#include <stats.hpp>
 #include <turtle.hpp>
 
 #include <cmath>
@@ -74,6 +75,10 @@ int main(int argc, char** argv) {
         {"chance-bad-p", [] { chance::bernoulli(1.5); }},
         {"chance-bad-sum", [] { chance::discrete(std::vector<double>{0.5, 0.4}); }},
         {"chance-bad-seed", [] { chance::uniform(); }},
+        {"stats-empty", [] { stats::mean(std::vector<double>{}); }},
+        {"stats-one-value", [] { stats::stddev({5.0}); }},
+        {"stats-nan", [] { stats::median({1.0, std::nan(""), 2.0}); }},
+        {"stats-plot-infinite", [] { stats::plotBars({HUGE_VAL, 1.0}); }},
         {"image-inconsistent", [] {
             image::Image img;
             img.width = 2;

@@ -77,6 +77,7 @@ Edit `main.cpp`. The guides explain each library:
 - [image](image.md): images, pixel by pixel;
 - [audio](audio.md): sound;
 - [chance](chance.md): random numbers;
+- [stats](stats.md): averages, spread and quick plots of numbers;
 - [input](input.md): help with `std::cin`, and asking questions with checked answers.
 
 To split your program into several files, add the other `.cpp` files to the

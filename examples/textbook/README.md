@@ -21,7 +21,7 @@ Guitar Hero and Percolation, are left out on purpose.
 | [`plot_filter`](plot_filter.cpp) | 1.5 | Reading points from standard input and plotting them: a map of the world, or of Pakistan | `std::cin`, `canvas` |
 | [`play_that_tune`](play_that_tune.cpp) | 1.5 | Reading notes from standard input and synthesizing them | `std::cin`, `audio` |
 | [`chaos_game`](chaos_game.cpp) | 2.2 | The Sierpinski triangle appearing from random jumps | `chance`, `canvas` |
-| [`bernoulli`](bernoulli.cpp) | 2.2 | Coin flips as a histogram, approaching the normal curve | `chance`, `canvas` |
+| [`bernoulli`](bernoulli.cpp) | 2.2 | Coin flips as a histogram, approaching the normal curve | `chance`, `stats`, `canvas` |
 | [`htree`](htree.cpp) | 2.3 | The H-tree fractal, by recursion | `canvas` |
 | [`brownian`](brownian.cpp) | 2.3 | A Brownian bridge (a "mountain range"), by recursion with random moves | `chance`, `canvas` |
 | [`spiral`](spiral.cpp) | 3.2 | A turtle drawing polygons with shrinking sides | `turtle` |

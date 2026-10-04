@@ -1,11 +1,12 @@
 // Reads numbers from standard input and prints how many there are, their
-// average, smallest and largest:
+// average, median, standard deviation, smallest and largest:
 //
 //     ./average < examples/data/numbers.txt
 //
 // Or type numbers and end with Ctrl+D (Ctrl+Z then Enter on Windows).
 
 #include <input.hpp>
+#include <stats.hpp>
 
 #include <iostream>
 #include <vector>
@@ -18,13 +19,12 @@ int main() {
         std::cout << "no numbers\n";
         return 0;
     }
-    double count = static_cast<double>(numbers.size());
-    double sum = 0, smallest = numbers[0], largest = numbers[0];
-    for (double x : numbers) {
-        sum += x;
-        if (x < smallest) smallest = x;
-        if (x > largest) largest = x;
+    std::cout << numbers.size() << " numbers\n";
+    std::cout << "average   " << stats::mean(numbers) << "\n";
+    std::cout << "median    " << stats::median(numbers) << "\n";
+    if (numbers.size() > 1) {  // the standard deviation needs two numbers
+        std::cout << "std dev   " << stats::stddev(numbers) << "\n";
     }
-    std::cout << numbers.size() << " numbers, average " << sum / count << ", smallest "
-              << smallest << ", largest " << largest << "\n";
+    std::cout << "smallest  " << stats::min(numbers) << "\n";
+    std::cout << "largest   " << stats::max(numbers) << "\n";
 }

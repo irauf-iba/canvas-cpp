@@ -56,6 +56,7 @@ their namespace:
 #include <image.hpp>    // images, pixel by pixel
 #include <audio.hpp>    // sound
 #include <chance.hpp>   // random numbers
+#include <stats.hpp>    // mean, median, stddev, and quick plots
 #include <input.hpp>    // help with std::cin: input::askInt and more
 
 int main() {
@@ -87,6 +88,7 @@ The library guides explain every function:
 - [image](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/image.md): images, pixel by pixel
 - [audio](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/audio.md): sound
 - [chance](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/chance.md): random numbers
+- [stats](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/stats.md): averages, spread and quick plots
 - [input](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/input.md): help with `std::cin`, and asking questions
 
 More detail on setup and problems is in
