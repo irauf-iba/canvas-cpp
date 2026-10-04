@@ -218,3 +218,7 @@ Limitations of individual modules are listed in their guides.
 - [stb](https://github.com/nothings/stb): public domain or MIT.
 - [dr_libs](https://github.com/mackron/dr_libs) (dr_wav, dr_mp3): public domain or MIT-0.
 - Noto Sans: SIL Open Font License 1.1 (`third_party/font/OFL.txt`).
+- Example data in `examples/textbook/data/`: world cities from
+  [Natural Earth](https://www.naturalearthdata.com) (public domain); places
+  in Pakistan from [GeoNames](https://www.geonames.org), licensed under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).

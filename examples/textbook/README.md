@@ -5,16 +5,20 @@ Interdisciplinary Approach* (the textbook of Princeton's introductory course),
 written for this library. Each file names the section of the book it follows.
 
 They are new programs for the same exercises, not translations of the
-booksite code, and the data files were made for this repository: the cities
-come from [Natural Earth](https://www.naturalearthdata.com) (public domain),
-and the melody is Beethoven's (public domain). Programs that are usually set as
-assignments, such as Mandelbrot, N-body, Guitar Hero and Percolation, are left
-out on purpose.
+booksite code, and the data files were made for this repository:
+- the cities of the world come from
+  [Natural Earth](https://www.naturalearthdata.com) (public domain);
+- the places in Pakistan come from [GeoNames](https://www.geonames.org)
+  (CC BY 4.0);
+- the melody is Beethoven's (public domain).
+
+Programs that are usually set as assignments, such as Mandelbrot, N-body,
+Guitar Hero and Percolation, are left out on purpose.
 
 | Program | Book | Shows | Library |
 |---|---|---|---|
 | [`function_graph`](function_graph.cpp) | 1.5 | Plotting a function from an array of points; too few points give a wrong picture | `canvas` |
-| [`plot_filter`](plot_filter.cpp) | 1.5 | Reading points from standard input and plotting them: a map of the world | `std::cin`, `canvas` |
+| [`plot_filter`](plot_filter.cpp) | 1.5 | Reading points from standard input and plotting them: a map of the world, or of Pakistan | `std::cin`, `canvas` |
 | [`play_that_tune`](play_that_tune.cpp) | 1.5 | Reading notes from standard input and synthesizing them | `std::cin`, `audio` |
 | [`chaos_game`](chaos_game.cpp) | 2.2 | The Sierpinski triangle appearing from random jumps | `chance`, `canvas` |
 | [`bernoulli`](bernoulli.cpp) | 2.2 | Coin flips as a histogram, approaching the normal curve | `chance`, `canvas` |
@@ -39,6 +43,7 @@ Two read standard input, so give them a data file with `<`:
 
 ```sh
 ./build/examples/textbook/plot_filter < examples/textbook/data/cities.txt
+./build/examples/textbook/plot_filter < examples/textbook/data/pakistan_cities.txt
 ./build/examples/textbook/play_that_tune < examples/textbook/data/ode_to_joy.txt
 ```
 
@@ -49,7 +54,12 @@ be repeated with `CANVAS_SEED=<seed>`.
 
 - [`data/cities.txt`](data/cities.txt): the first line is the bounding box
   (`-180 -90 180 90`); each line after it is the longitude and latitude of a
-  city, 1251 in all.
+  city, 1251 in all, from Natural Earth's populated places (public domain).
+- [`data/pakistan_cities.txt`](data/pakistan_cities.txt): the same format, for
+  the 570 places in Pakistan with at least 1000 people. Selected from the
+  GeoNames `cities1000` file, by [GeoNames](https://www.geonames.org), licensed
+  under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); only the
+  coordinates are kept, rounded to four decimals.
 - [`data/ode_to_joy.txt`](data/ode_to_joy.txt): one note per line, a pitch in
   semitones from A4 (440 Hz) and a duration in seconds. Write your own tune in
   the same format.
