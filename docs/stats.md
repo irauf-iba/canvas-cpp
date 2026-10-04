@@ -122,6 +122,6 @@ An empty vector is an error everywhere except `sum`, whose total is 0.
 - [`examples/average.cpp`](../examples/average.cpp): the average, median,
   standard deviation, smallest and largest of numbers on standard input:
   `./average < examples/data/numbers.txt`.
-- [`examples/textbook/bernoulli.cpp`](../examples/textbook/bernoulli.cpp):
+- [`examples/bernoulli.cpp`](../examples/bernoulli.cpp):
   coin-flip experiments, with their mean and standard deviation next to the
   curve's.

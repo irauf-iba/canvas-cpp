@@ -2,8 +2,8 @@
 // points. The first line holds xmin ymin xmax ymax; each line after it holds
 // one point, x y.
 //
-//     ./plot_filter < examples/textbook/data/cities.txt
-//     ./plot_filter < examples/textbook/data/pakistan_cities.txt
+//     ./plot_filter < examples/data/cities.txt
+//     ./plot_filter < examples/data/pakistan_cities.txt
 //
 // The points in these files are the longitude and latitude of cities, so the
 // plots are maps: cities.txt has 1251 cities of the world (from Natural

@@ -2,7 +2,7 @@
 // semitones above (or, if negative, below) A4 at 440 Hz, and a duration in
 // seconds.
 //
-//     ./play_that_tune < examples/textbook/data/ode_to_joy.txt
+//     ./play_that_tune < examples/data/ode_to_joy.txt
 //
 // ode_to_joy.txt is the main theme of Beethoven's Ninth Symphony.
 //

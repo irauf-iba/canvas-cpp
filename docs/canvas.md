@@ -390,7 +390,7 @@ canvas::setDrawDelay(30);   // 30 ms after every drawing call
 
 After every drawing call the canvas is shown and the program waits, so you
 can watch the order in which things are drawn: how a loop fills the canvas,
-or how recursion builds a fractal (try it with `examples/textbook/htree.cpp`
+or how recursion builds a fractal (try it with `examples/htree.cpp`
 or `examples/koch.cpp`). While it is on, double buffering is ignored, so each
 step is visible. `setDrawDelay(0)` turns it off; in headless mode it never
 waits.
