@@ -131,7 +131,8 @@ struct State {
     std::vector<float> strokeMask;  // kept all zero between strokes
 };
 
-// Allocated once and never freed, so it outlives the atexit handler.
+// Allocated once and never freed, so it outlives the exit handlers that still
+// use it (see "Objects that are never freed" in internal.hpp).
 inline State& st() {
     static State* s = new State;
     return *s;

@@ -39,7 +39,10 @@ struct Font {
     bool ready = false;
 };
 
-// The current font, built in or from setFont(). Never freed, like the state.
+// The current font, built in or from setFont(). Never freed: the exit
+// handler that keeps the window open redraws text after main() returns, and
+// a font destroyed at exit would be gone by then (see "Objects that are never
+// freed" in internal.hpp).
 Font& theFont() {
     static Font* font = new Font;
     return *font;

@@ -1,4 +1,31 @@
 // internal.hpp - shared by the library's source files; not part of the API.
+//
+// Objects that are never freed
+//
+// Each module keeps its state in one object, created on first use with
+// `static State* s = new State` and never deleted (the canvas state, its
+// font, the recording, the audio state and the input state). This is on
+// purpose:
+//
+// - The library still works after main() returns. Exit handlers keep the
+//   window open and redraw it (with text, so the font is needed), finish
+//   queued sound and save a recording. The audio module's handler calls into
+//   the canvas, std::cin may still read through the input state, and a
+//   student's own exit handler or global object may draw.
+// - C++ destroys static objects and runs exit handlers in the reverse order
+//   of their creation. An object created after a handler was registered,
+//   such as the font at the first text() after the first drawing call, would
+//   be destroyed before that handler runs. The handler would then use freed
+//   memory (AddressSanitizer reports a heap-use-after-free in renderText
+//   from onExit if the font is made an ordinary static object).
+// - Not freeing costs nothing: each object is allocated once and doesn't
+//   grow, and the operating system takes back all of a program's memory when
+//   it ends. Leak checkers don't report them, since a static pointer still
+//   points to each one.
+//
+// What matters outside the program is released explicitly, in order, by the
+// exit handlers: the window is closed, SDL is shut down, queued sound is
+// played and a recording is saved.
 
 #ifndef CANVAS_INTERNAL_HPP
 #define CANVAS_INTERNAL_HPP

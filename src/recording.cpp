@@ -39,7 +39,7 @@ struct Recording {
 };
 
 Recording& rec() {
-    static Recording* r = new Recording;  // outlives the exit handlers
+    static Recording* r = new Recording;  // never freed: saved by an exit handler (see internal.hpp)
     return *r;
 }
 

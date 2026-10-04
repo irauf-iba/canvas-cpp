@@ -69,7 +69,8 @@ struct State {
     std::map<std::string, Sound> sounds;  // files, by name
 };
 
-// Allocated once and never freed, so it outlives the atexit handler.
+// Allocated once and never freed, so it outlives the exit handlers that still
+// use it (see "Objects that are never freed" in internal.hpp).
 State& st() {
     static State* s = new State;
     return *s;

@@ -92,6 +92,8 @@ struct State {
     std::string fileName;  // the file fromFile() opened, or ""
 };
 
+// Never freed: std::cin reads through the reader, also while the program
+// exits (see "Objects that are never freed" in internal.hpp).
 State& st() {
     static State* s = new State;
     return *s;
