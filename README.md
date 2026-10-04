@@ -12,6 +12,11 @@ by Princeton's [standard libraries](https://introcs.cs.princeton.edu/java/stdlib
 | `chance` | Random numbers, the same on every computer for a given seed | StdRandom | [docs/chance.md](docs/chance.md) |
 | `input`, `output` | Help with `std::cin`: checked questions, reading all values, Windows line endings; files in an IDE | StdIn, StdOut | [docs/input.md](docs/input.md) |
 
+**Examples:** [`examples/`](examples) has a small program for most features,
+and [`examples/textbook/`](examples/textbook) has classic programs from the
+Princeton textbook (function graphs, fractals, the chaos game, turtle
+spirals, a tune player and more), written for this library.
+
 **Students:** copy the starter project in [`template`](template) and follow
 its one-page [README](template/README.md). The full
 [getting-started guide](docs/getting-started.md) covers Visual Studio,
@@ -117,6 +122,7 @@ The tests need no display or speakers:
 | `audio` | Sound files, mixing down, sample-rate conversion, clipping and capture, without a device. |
 | `audio.*` | Real-time playback, background sounds, sound at program exit, and closing the window while that sound finishes, with the `dummy` driver; mixing in the device output, with the `disk` driver. |
 | `error.*` | Each mistake stops the program with the expected message. |
+| `textbook.*` | Each textbook example runs headless (with its data file on standard input where it reads one). |
 
 After an intended change to rendering, regenerate the reference images, check
 them by eye, and commit them:
@@ -181,6 +187,7 @@ docs/                  getting started, and a guide to each module
 template/              starter project for students
 examples/              shapes, bouncing_ball, sketch, image_effects, scale, piano, random_walk,
                        average, grades, guess, koch, tree (data files in examples/data/)
+examples/textbook/     classic programs from the Princeton textbook, with their data
 tests/                 tests, reference images and benchmark
 tests/data/            small sound files for the audio tests
 tests/manual/          real-input test (xdotool) and speaker test (parecord)

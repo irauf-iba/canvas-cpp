@@ -103,6 +103,11 @@ endif()
 # Examples
 # ---------------------------------------------------------------------------
 
+# enable_testing() comes first, since the examples also add tests.
+if(CANVAS_BUILD_TESTS)
+  enable_testing()
+endif()
+
 if(CANVAS_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
@@ -112,6 +117,5 @@ endif()
 # ---------------------------------------------------------------------------
 
 if(CANVAS_BUILD_TESTS)
-  enable_testing()
   add_subdirectory(tests)
 endif()
