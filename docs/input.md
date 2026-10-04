@@ -168,6 +168,20 @@ back to the keyboard and the screen.
 - **`output::toFile`** creates the file, or empties it if it exists. Calling it
   again switches to another file.
 
+### Data from the web
+
+The library doesn't read from URLs. Download the file once with `curl`, which
+comes with Windows 10 and 11, macOS and Linux, and read it with `fromFile`
+(or `<`):
+
+```sh
+curl -fL -o cities.txt https://raw.githubusercontent.com/irauf-iba/canvas-cpp/v0.1/examples/data/cities.txt
+```
+
+On Windows, type `curl.exe` in PowerShell, where `curl` alone means something
+else. Then `input::fromFile("cities.txt")` reads it, and every run uses the
+same data, even without a network.
+
 ## Errors
 
 Mistakes stop the program with a message and exit status 1, for example:
@@ -197,6 +211,7 @@ what `std::cin` lacks.
 | `StdIn.readLine()` | `input::getLine(std::cin, line)` |
 | `StdIn.readAllInts()`, `readAllStrings()`, `readAllLines()` | `input::readAllInts()`, `readAllWords()`, `readAllLines()`, with errors for bad values |
 | `In` objects for named files | `input::fromFile(name)`, then `std::cin` |
+| `In` objects for URLs | Download with `curl`, then `input::fromFile(name)` ([above](#data-from-the-web)) |
 | `StdOut.println(x)` | `std::cout << x << "\n"`; `output::toFile(name)` for a file |
 | — | `skipRestOfLine`, `skipEmptyLines`, `ask…`, `split`, `trim`, `toInt`, `toDouble` |
 
