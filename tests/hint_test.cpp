@@ -3,7 +3,7 @@
 //
 // Usage: hint_test drawing     (headless)
 //        hint_test no-show     (with a window: double buffering, no show())
-//        hint_test off         (setHints(false))
+//        hint_test off         (disableHints())
 //        hint_test env         (run with CANVAS_HINTS=0)
 //        hint_test flipped     (a y axis pointing down, in pixel coordinates)
 
@@ -102,7 +102,7 @@ void flipped() {
 }
 
 void off(bool callSetHints) {
-    if (callSetHints) canvas::setHints(false);
+    if (callSetHints) canvas::disableHints();
     canvas::circle(200, 150, 50);
     canvas::setPenColor(canvas::WHITE);
     canvas::filledCircle(0.8, 0.2, 0.05);

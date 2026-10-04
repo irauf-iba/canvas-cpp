@@ -77,29 +77,23 @@ pixels are stored row after row in `img.pixels`: pixel (row, col) is
 Files are looked up in the current folder first, and then in the folder of
 the program itself, as described in [canvas.md](canvas.md#pictures-and-the-canvas).
 
-## Transformations
+## Cropping
 
-Each of these returns a new image and leaves the original unchanged:
-
-| Function | Gives |
-|---|---|
-| `image::flipHorizontal(img)` | The image mirrored left to right. |
-| `image::flipVertical(img)` | The image upside down. |
-| `image::rotate(img, degrees)` | The image turned counterclockwise (clockwise if negative). The result is just big enough to hold it, with transparent corners. Multiples of 90° move the pixels exactly; other angles blend neighbouring pixels. |
-| `image::resize(img, width, height)` | The image stretched or shrunk to a new size. Shrinking averages the pixels each new pixel covers; enlarging blends between neighbours. |
-| `image::crop(img, row, col, width, height)` | The `width` × `height` part whose top-left corner is the pixel at (row, col). It must lie inside the image. |
+`image::crop(img, row, col, rows, cols)` gives a new image with part of
+`img`: `rows` rows and `cols` columns, starting at the pixel (row, col), its
+top-left corner. For example, one sprite from a sheet of sprites:
 
 ```cpp
-image::Image photo = image::load("photo.jpg");
-image::Image thumb = image::resize(photo, photo.width / 4, photo.height / 4);
-image::Image face = image::crop(photo, 40, 100, 200, 200);   // row 40, col 100, 200 x 200
+image::Image sheet = image::load("sprites.png");    // four 32 x 48 sprites in a row
+image::Image third = image::crop(sheet, 0, 64, 48, 32);   // from row 0, col 64: 48 rows, 32 cols
 ```
 
-They are building blocks, for example for a sprite facing either way or a
-photo shrunk to fit. Writing your own versions with `img[row][col]` is a good
-exercise, and these are there to check against.
+The part must lie inside the image.
 
-![An image flipped, rotated, resized and cropped (top), and pictures turned by canvas (bottom)](../tests/reference/transforms.png)
+The library has no functions to flip, turn or scale an image: those are
+classic exercises (section 3.1 of the textbook), written with
+`img[row][col]`. To draw a picture turned or scaled, use `canvas::picture`
+(below), which doesn't change the image.
 
 ## Colors
 
@@ -122,7 +116,9 @@ exercise, and these are there to check against.
 |---|---|
 | `canvas::picture(x, y, img)` | Draws the image centered at (x, y), at its natural size. Each image pixel covers exactly one canvas pixel. |
 | `canvas::picture(x, y, img, width, height)` | The same, scaled to a width and height in user coordinates. |
-| `canvas::picture(x, y, img, degrees)`, `canvas::picture(x, y, img, width, height, degrees)` | The same, turned counterclockwise around (x, y). For a sprite that turns every frame this is faster than `image::rotate`. |
+| `canvas::picture(x, y, img, degrees)`, `canvas::picture(x, y, img, width, height, degrees)` | The same, turned counterclockwise around (x, y), e.g. a sprite facing the way it moves. |
+
+![Pictures drawn turned by canvas, and a cropped one](../tests/reference/rotated.png)
 | `canvas::snapshot()` | A copy of the canvas as an image, e.g. to process a drawing. |
 
 On a canvas the same size as an image, `canvas::picture(0.5, 0.5, img)` fills
@@ -139,7 +135,7 @@ image: getPixel: col 640 is outside the image (0 to 639)
 image: setPixel: row -1 is outside the image (0 to 479)
 image: load: cannot open 'photo.png' (not in the current folder, /home/ana/lab3/build/)
 image: save: 'out.gif' must end in .png, .jpg or .bmp
-image: crop: the 300 x 200 part at row 0, col 400 is not inside the 640 x 480 image
+image: crop: rows 0 to 199 and cols 400 to 699 are not all inside the image (rows 0 to 479, cols 0 to 639)
 canvas: picture: the image has 3 pixels, but width x height is 2 x 2
 ```
 
@@ -154,7 +150,7 @@ hand so that they no longer match.
 | `get(col, row)`: column first | `[row][col]`: row first | The same order as 2D arrays and nested row/column loops, in every function. |
 | `picture.show()` opens a window | `canvas::picture(x, y, img)` | Images are shown on the `canvas` canvas, together with any drawing. |
 | `setOriginLowerLeft()` | Always top-left | One convention, the same as image files and editors. |
-| — | `flipHorizontal`, `flipVertical`, `rotate`, `resize`, `crop` | Common building blocks, e.g. for sprites and thumbnails. |
+| — | `crop` | For sprite sheets. Flipping, turning and scaling are left as exercises. |
 | Exceptions | Message and exit | Clearer for beginners than an uncaught exception. |
 
 ## How it works

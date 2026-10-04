@@ -263,14 +263,17 @@ void stopRecording();
 // Hints are given for shapes entirely outside the canvas, shapes in the
 // background colour that can't be seen, a fully transparent pen, and double
 // buffering without show(). They never stop the program. On by default;
-// setHints(false), or the environment variable CANVAS_HINTS=0, turns them off.
-void setHints(bool on);
+// disableHints(), or the environment variable CANVAS_HINTS=0, turns them
+// off; enableHints() turns them on again.
+void enableHints();
+void disableHints();
 
 // Shows the mouse position, in canvas coordinates, in the window title, e.g.
 // "My program | x 0.534, y 0.210". Point at something to find its
 // coordinates. During an animation the frame rate is shown too
-// ("| 60 fps"). showMouseCoordinates(false) turns it off.
-void showMouseCoordinates(bool on = true);
+// ("| 60 fps"). hideMouseCoordinates() turns it off.
+void showMouseCoordinates();
+void hideMouseCoordinates();
 
 // Slow motion: after every drawing call, the canvas is shown and the program
 // waits ms milliseconds, so you can watch the order in which things are drawn,
@@ -350,26 +353,11 @@ bool wasKeyPressed(Key key);
 
 // ---------------------------------------------------------------------------
 // Game helpers
-//
-// For collisions and buttons. Positions and sizes are in user coordinates,
-// as for drawing: a circle has a centre and a radius, as in filledCircle(),
-// and a rectangle a centre, half width and half height, as in
-// filledRectangle(). Shapes that just touch count as overlapping.
-//     if (canvas::circleOverlapsRectangle(ballX, ballY, 0.02, padX, padY, 0.1, 0.01)) {
-//         ballVY = -ballVY;   // bounce off the paddle
-//     }
-// The circle checks use the circles as drawn, round on the screen, even when
-// the x and y scales differ.
 // ---------------------------------------------------------------------------
 
-// The distance between the points (x0, y0) and (x1, y1).
+// The distance between the points (x0, y0) and (x1, y1), e.g. to find out
+// whether two balls touch: distance(x0, y0, x1, y1) <= r0 + r1.
 double distance(double x0, double y0, double x1, double y1);
-
-bool circlesOverlap(double x0, double y0, double r0, double x1, double y1, double r1);
-bool rectanglesOverlap(double x0, double y0, double halfWidth0, double halfHeight0,
-                       double x1, double y1, double halfWidth1, double halfHeight1);
-bool circleOverlapsRectangle(double cx, double cy, double radius,
-                             double x, double y, double halfWidth, double halfHeight);
 
 // True if the mouse is over the rectangle, e.g. a button drawn with
 // filledRectangle(x, y, halfWidth, halfHeight):

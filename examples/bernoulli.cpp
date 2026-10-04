@@ -23,15 +23,17 @@ int main(int argc, char** argv) {
     int n = argc > 1 ? input::toInt(argv[1]) : 20;
     int trials = argc > 2 ? input::toInt(argv[2]) : 10000;
 
-    // heads[t]: how many of the n coins came up heads in experiment t.
+    // results[t]: how many of the n coins came up heads in experiment t.
     // counts[k]: how many times exactly k of the n coins came up heads.
-    std::vector<int> heads(trials, 0);
+    std::vector<double> results;
     std::vector<int> counts(n + 1, 0);
     for (int t = 0; t < trials; ++t) {
+        int heads = 0;
         for (int i = 0; i < n; ++i) {
-            if (chance::bernoulli(0.5)) ++heads[t];
+            if (chance::bernoulli(0.5)) ++heads;
         }
-        ++counts[heads[t]];
+        results.push_back(heads);
+        ++counts[heads];
     }
 
     // The normal curve with the same mean and standard deviation.
@@ -60,6 +62,6 @@ int main(int argc, char** argv) {
     canvas::text(mean, 1.17 * peak, std::to_string(n) + " coins, " + std::to_string(trials) + " times");
     char summary[100];
     std::snprintf(summary, sizeof summary, "mean %.2f (curve %.2f), standard deviation %.2f (curve %.2f)",
-                  stats::mean(heads), mean, stats::stddev(heads), sd);
+                  stats::mean(results), mean, stats::stddev(results), sd);
     canvas::text(mean, 1.09 * peak, summary);
 }

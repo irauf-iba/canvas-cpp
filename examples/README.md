@@ -11,7 +11,7 @@ explains at the top what it does and what arguments it takes.
 | [`shapes`](shapes.cpp) | One of each kind of shape | `canvas` |
 | [`bouncing_ball`](bouncing_ball.cpp) | The animation loop: double buffering and a frame rate | `canvas` |
 | [`sketch`](sketch.cpp) | Drawing with the mouse; keys to change colour, clear and save | `canvas` |
-| [`paddle`](paddle.cpp) | A small game: a start button, collisions, sound effects, colours from `hsv`, debug keys, and recording a GIF (`./paddle record`) | `canvas`, `audio` |
+| [`paddle`](paddle.cpp) | A small game: a start button, a ball hitting a paddle, sound effects, colours from `hsv`, debug keys, and recording a GIF (`./paddle record`) | `canvas`, `audio` |
 | [`koch`](koch.cpp) | A Koch snowflake, asking for the depth | `turtle`, `input` |
 | [`tree`](tree.cpp) | A recursive tree, with branches getting thinner and turning green | `turtle` |
 | [`image_effects`](image_effects.cpp) | Grayscale and mirror images, pixel by pixel, of a drawing or a photo | `image`, `canvas` |

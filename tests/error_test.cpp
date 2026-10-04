@@ -35,7 +35,6 @@ int main(int argc, char** argv) {
         {"negative-frame-rate", [] { canvas::setFrameRate(-30); }},
         {"grid-step", [] { canvas::showGrid(0); }},
         {"hsv-nan", [] { canvas::hsv(std::nan(""), 1, 1); }},
-        {"overlap-negative", [] { canvas::circlesOverlap(0, 0, -1, 1, 1, 1); }},
         {"picture-rotated-nan", [] { canvas::picture(0.5, 0.5, image::create(2, 2), std::nan("")); }},
         {"record-format", [] { canvas::startRecording("out.mp4"); }},
         {"record-twice", [] { canvas::startRecording("a.gif"); canvas::startRecording("b.gif"); }},
@@ -45,9 +44,7 @@ int main(int argc, char** argv) {
         {"image-index-outside", [] { image::Image img = image::create(5, 3); img[3][0] = image::RED; }},
         {"image-index-const", [] { const image::Image img = image::create(5, 3); image::Color c = img[0][-1]; (void)c; }},
         {"image-load-missing", [] { image::load("no-such-file.png"); }},
-        {"image-crop-outside", [] { image::crop(image::create(5, 3), 0, 2, 4, 4); }},
-        {"image-resize-zero", [] { image::resize(image::create(5, 3), 0, 3); }},
-        {"image-rotate-nan", [] { image::rotate(image::create(5, 3), std::nan("")); }},
+        {"image-crop-outside", [] { image::crop(image::create(5, 3), 0, 2, 2, 4); }},
         {"image-create-negative", [] { image::create(-1, 10); }},
         {"image-save-format", [] { image::save(image::create(2, 2), "out.gif"); }},
         {"image-save-empty", [] { image::save(image::create(0, 0), "out.png"); }},
@@ -89,7 +86,6 @@ int main(int argc, char** argv) {
         {"stats-empty", [] { stats::mean(std::vector<double>{}); }},
         {"stats-one-value", [] { stats::stddev({5.0}); }},
         {"stats-nan", [] { stats::median({1.0, std::nan(""), 2.0}); }},
-        {"stats-plot-infinite", [] { stats::plotBars({HUGE_VAL, 1.0}); }},
         {"image-inconsistent", [] {
             image::Image img;
             img.width = 2;

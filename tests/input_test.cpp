@@ -243,7 +243,7 @@ void testMouseCoordinatesInTitle() {
     std::string title = SDL_GetWindowTitle(window());
     std::printf("title: %s\n", title.c_str());
     CHECK(title.rfind("Test | x 0.500, y 0.500", 0) == 0);  // scale is -1..1 here
-    canvas::showMouseCoordinates(false);
+    canvas::hideMouseCoordinates();
     CHECK(std::string(SDL_GetWindowTitle(window())) == "Test");
 }
 

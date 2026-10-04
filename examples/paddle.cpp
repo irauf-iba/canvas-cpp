@@ -1,7 +1,6 @@
-// A paddle game: keep the ball in play with the mouse. Shows the game
-// helpers (isMouseOver for the button, circleOverlapsRectangle for the
-// paddle), sound effects, colours from hsv(), and the debug keys:
-// P pauses, N steps one frame, G shows the grid.
+// A paddle game: keep the ball in play with the mouse. Shows a button with
+// isMouseOver, a ball hitting a paddle, sound effects, colours from hsv(),
+// and the debug keys: P pauses, N steps one frame, G shows the grid.
 //
 //     ./paddle            play
 //     ./paddle record     also record the game to paddle.gif
@@ -12,6 +11,15 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+
+// True if a ball touches a paddle (a rectangle given by its centre, half
+// width and half height): the point of the paddle nearest the ball's centre
+// is no farther away than the radius.
+bool touches(double x, double y, double radius, double padX, double padY, double halfWidth, double halfHeight) {
+    double nearestX = std::clamp(x, padX - halfWidth, padX + halfWidth);
+    double nearestY = std::clamp(y, padY - halfHeight, padY + halfHeight);
+    return canvas::distance(x, y, nearestX, nearestY) <= radius;
+}
 
 int main(int argc, char** argv) {
     canvas::setTitle("Paddle");
@@ -48,7 +56,7 @@ int main(int argc, char** argv) {
             y += vy;
             if ((x < radius && vx < 0) || (x > 1 - radius && vx > 0)) vx = -vx;
             if (y > 1 - radius && vy > 0) vy = -vy;
-            if (vy < 0 && canvas::circleOverlapsRectangle(x, y, radius, padX, padY, padHalfWidth, padHalfHeight)) {
+            if (vy < 0 && touches(x, y, radius, padX, padY, padHalfWidth, padHalfHeight)) {
                 vy = -vy * 1.05;            // a little faster each time
                 vx += (x - padX) * 0.05;    // the edge of the paddle sends it sideways
                 ++score;

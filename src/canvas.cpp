@@ -121,7 +121,7 @@ struct State {
     std::array<bool, kKeyCount> keyWentDown{};  // keys pressed this frame, for wasKeyPressed()
 
     // Debugging aids: hints, the title readout and slow motion.
-    bool hints = true;              // setHints(false) or CANVAS_HINTS=0 turns them off
+    bool hints = true;              // disableHints() or CANVAS_HINTS=0 turns them off
     unsigned hintsShown = 0;        // the kinds of hint already printed
     Color background = WHITE;       // the colour of the last clear()
     const char* drawFunction = "";  // the drawing call in progress, for hints
@@ -1886,10 +1886,16 @@ void setFrameRate(double framesPerSecond) {
     s.hasFrame = false;
 }
 
-void setHints(bool on) { st().hints = on; }
+void enableHints() { st().hints = true; }
+void disableHints() { st().hints = false; }
 
-void showMouseCoordinates(bool on) {
-    st().showCoordinates = on;
+void showMouseCoordinates() {
+    st().showCoordinates = true;
+    updateTitle();
+}
+
+void hideMouseCoordinates() {
+    st().showCoordinates = false;
     updateTitle();
 }
 
@@ -2112,65 +2118,6 @@ bool isKeyPressed(Key key) {
 double distance(double x0, double y0, double x1, double y1) {
     checkFinite("distance", {x0, y0, x1, y1});
     return std::hypot(x1 - x0, y1 - y0);
-}
-
-namespace {
-
-// Circles are compared where they are drawn, in pixels: with different x and
-// y scales they are round on the screen, not in user coordinates.
-struct PixelCircle {
-    double x, y, r;
-};
-
-PixelCircle pixelCircle(double x, double y, double radius) {
-    const State& s = st();
-    return {(x - s.xmin) / (s.xmax - s.xmin) * s.width, (s.ymax - y) / (s.ymax - s.ymin) * s.height,
-            std::abs(radius / (s.xmax - s.xmin) * s.width)};
-}
-
-// A rectangle in pixels, as its edges.
-struct PixelBox {
-    double left, top, right, bottom;
-};
-
-PixelBox pixelBox(double x, double y, double halfWidth, double halfHeight) {
-    const PixelCircle c = pixelCircle(x, y, 0);
-    const State& s = st();
-    const double hw = std::abs(halfWidth / (s.xmax - s.xmin) * s.width);
-    const double hh = std::abs(halfHeight / (s.ymax - s.ymin) * s.height);
-    return {c.x - hw, c.y - hh, c.x + hw, c.y + hh};
-}
-
-}  // namespace
-
-bool circlesOverlap(double x0, double y0, double r0, double x1, double y1, double r1) {
-    checkFinite("circlesOverlap", {x0, y0, r0, x1, y1, r1});
-    checkNonNegative("circlesOverlap", "radius", r0);
-    checkNonNegative("circlesOverlap", "radius", r1);
-    const PixelCircle a = pixelCircle(x0, y0, r0), b = pixelCircle(x1, y1, r1);
-    return std::hypot(a.x - b.x, a.y - b.y) <= a.r + b.r;
-}
-
-bool rectanglesOverlap(double x0, double y0, double halfWidth0, double halfHeight0, double x1, double y1,
-                       double halfWidth1, double halfHeight1) {
-    checkFinite("rectanglesOverlap", {x0, y0, halfWidth0, halfHeight0, x1, y1, halfWidth1, halfHeight1});
-    for (double h : {halfWidth0, halfHeight0, halfWidth1, halfHeight1}) {
-        checkNonNegative("rectanglesOverlap", "a half width or half height", h);
-    }
-    return std::abs(x0 - x1) <= halfWidth0 + halfWidth1 && std::abs(y0 - y1) <= halfHeight0 + halfHeight1;
-}
-
-bool circleOverlapsRectangle(double cx, double cy, double radius, double x, double y, double halfWidth,
-                             double halfHeight) {
-    checkFinite("circleOverlapsRectangle", {cx, cy, radius, x, y, halfWidth, halfHeight});
-    checkNonNegative("circleOverlapsRectangle", "radius", radius);
-    checkNonNegative("circleOverlapsRectangle", "halfWidth", halfWidth);
-    checkNonNegative("circleOverlapsRectangle", "halfHeight", halfHeight);
-    const PixelCircle c = pixelCircle(cx, cy, radius);
-    const PixelBox b = pixelBox(x, y, halfWidth, halfHeight);
-    // The point of the rectangle nearest the circle's centre.
-    const double nx = std::clamp(c.x, b.left, b.right), ny = std::clamp(c.y, b.top, b.bottom);
-    return std::hypot(c.x - nx, c.y - ny) <= c.r;
 }
 
 bool isMouseOver(double x, double y, double halfWidth, double halfHeight) {

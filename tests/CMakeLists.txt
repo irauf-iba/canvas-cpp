@@ -30,7 +30,7 @@ add_test(NAME header COMMAND header_test)
 canvas_test_executable(render_test)
 target_include_directories(render_test SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)
 target_include_directories(render_test PRIVATE ${PROJECT_SOURCE_DIR}/src)  # screenImage()
-foreach(scene IN ITEMS shapes polygons text pictures clipping aspect image turtle overlay stats colors transforms)
+foreach(scene IN ITEMS shapes polygons text pictures clipping aspect image turtle overlay colors rotated)
   add_test(NAME render.${scene}
            COMMAND render_test ${scene} ${CMAKE_CURRENT_SOURCE_DIR}/reference)
   set_tests_properties(render.${scene} PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
@@ -46,10 +46,9 @@ set_tests_properties(chance.seed-from-environment PROPERTIES ENVIRONMENT CANVAS_
 canvas_test_executable(color_test)
 add_test(NAME color COMMAND color_test)
 
-# Game helpers: distance and overlap checks, also with different scales.
-canvas_test_executable(game_test)
-add_test(NAME game COMMAND game_test)
-set_tests_properties(game PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
+# distance().
+canvas_test_executable(distance_test)
+add_test(NAME distance COMMAND distance_test)
 
 # The stopwatch.
 canvas_test_executable(stopwatch_test)
@@ -68,10 +67,9 @@ set_tests_properties(recording.exit PROPERTIES FIXTURES_SETUP recording_exit
 set_tests_properties(recording.check-exit PROPERTIES FIXTURES_REQUIRED recording_exit)
 set_tests_properties(recording.limit PROPERTIES TIMEOUT 60)
 
-# Statistics: the numbers, and where the plots draw.
+# Statistics.
 canvas_test_executable(stats_test)
 add_test(NAME stats COMMAND stats_test)
-set_tests_properties(stats PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
 
 # Headless mode: nothing waits and no input is reported (what graders rely on).
 canvas_test_executable(headless_test)
@@ -199,7 +197,6 @@ set(error_cases
   "negative-frame-rate|setFrameRate: the frame rate must not be negative"
   "grid-step|showGrid: the step must be positive"
   "hsv-nan|hsv: an argument is NaN or infinite"
-  "overlap-negative|circlesOverlap: radius must not be negative"
   "picture-rotated-nan|picture: an argument is NaN or infinite"
   "record-format|startRecording: 'out.mp4' must end in .gif"
   "record-twice|startRecording: already recording to 'a.gif' (call stopRecording() first)"
@@ -212,9 +209,7 @@ set(error_cases
   "image-create-negative|image: create: width and height must not be negative"
   "image-save-format|image: save: 'out.gif' must end in .png, .jpg or .bmp"
   "image-save-empty|image: save: cannot save an empty image"
-  "image-crop-outside|image: crop: the 4 x 4 part at row 0, col 2 is not inside the 5 x 3 image"
-  "image-resize-zero|image: resize: width and height must be positive"
-  "image-rotate-nan|image: rotate: degrees is NaN or infinite"
+  "image-crop-outside|image: crop: rows 0 to 1 and cols 2 to 5 are not all inside the image (rows 0 to 2, cols 0 to 4)"
   "image-inconsistent|canvas: picture: the image has 3 pixels, but width x height is 2 x 2"
   "audio-read-missing|audio: read: cannot open 'no-such-file.wav'"
   "audio-read-format|audio: read: 'music.ogg' must end in .wav or .mp3"
@@ -240,7 +235,6 @@ set(error_cases
   "stats-empty|stats: mean: the vector is empty"
   "stats-one-value|stats: stddev: needs at least 2 values, not 1"
   "stats-nan|stats: median: values[1] is NaN"
-  "stats-plot-infinite|stats: plotBars: values[0] is infinite"
 )
 foreach(entry IN LISTS error_cases)
   string(FIND "${entry}" "|" bar)

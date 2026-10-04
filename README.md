@@ -10,7 +10,7 @@ by Princeton's [standard libraries](https://introcs.cs.princeton.edu/java/stdlib
 | `image` | Image processing, pixel by pixel | Picture | [docs/image.md](docs/image.md) |
 | `audio` | Sound as samples, sound files, background sound | StdAudio | [docs/audio.md](docs/audio.md) |
 | `chance` | Random numbers, the same on every computer for a given seed | StdRandom | [docs/chance.md](docs/chance.md) |
-| `stats` | Mean, median, standard deviation and more of a list of numbers; quick plots | StdStats | [docs/stats.md](docs/stats.md) |
+| `stats` | Mean, median, standard deviation and more of a list of numbers | StdStats | [docs/stats.md](docs/stats.md) |
 | `stopwatch` | Timing code, e.g. for the running time of algorithms | Stopwatch | [docs/stopwatch.md](docs/stopwatch.md) |
 | `input`, `output` | Help with `std::cin`: checked questions, reading all values, Windows line endings; files in an IDE | StdIn, StdOut | [docs/input.md](docs/input.md) |
 
@@ -121,17 +121,17 @@ The tests need no display or speakers:
 |---|---|
 | `header` | Each public header compiles on its own with strict warnings as errors. |
 | `render.*` | Snapshot tests: each scene is compared with `tests/reference/<scene>.png`, allowing small differences. On failure, `<scene>-diff.png` in the build's `tests` folder marks the differing pixels in red. |
-| `image` | Creating, changing, saving and loading images; flipping, rotating (exactly for quarter turns), resizing and cropping; `canvas::snapshot()` and `canvas::picture()` with an image; plus the `render.transforms` snapshot. |
+| `image` | Creating, changing, saving and loading images; cropping; `canvas::snapshot()` and `canvas::picture()` with an image; plus the `render.rotated` snapshot of turned pictures. |
 | `text` | `text()` with numbers and characters: formatting and choice of overload. |
 | `overlay` | The grid and watched values appear on the screen but never in `snapshot()`; updating and removing values. |
 | `color` | `gray`, `hsv` (the corners of the color wheel, any angle, clamping) and `mix`, in both namespaces; plus the `render.colors` snapshot. |
-| `game` | `distance` and the overlap checks, including touching shapes, rounded rectangle corners and different x and y scales. |
+| `distance` | `distance()`. |
 | `recording.*` | GIF frame timing from the frame rate, `pause()` and slow motion; merging unchanged frames; the 60-second limit; saving when the program ends. |
 | `stopwatch` | Elapsed time, restarting, and timing without `start()`. |
-| `hints.*` | Each hint appears once for its mistake, and not for look-alikes (zero-size or partly visible shapes, white on colour, pictures); `setHints(false)` and `CANVAS_HINTS=0` turn them off. |
+| `hints.*` | Each hint appears once for its mistake, and not for look-alikes (zero-size or partly visible shapes, white on colour, pictures); `disableHints()` and `CANVAS_HINTS=0` turn them off. |
 | `turtle` | Turtle positions and headings (including wrapping past 360°), the pen, and a square closing exactly; plus the `render.turtle` snapshot. |
 | `reading`, `reading.stdin`, `ask*`, `output` | `fromFile` with plain `std::cin` (Windows line endings, byte-order mark), `skipRestOfLine`, `skipEmptyLines`, `getLine` and `readAll…` on files and real standard input, the exact prompts and messages of the `ask…` functions, the string helpers, and `output::toFile`. |
-| `stats` | Sums, extremes, averages and spread, for doubles, ints and lists in braces (with large values close together); where the plots draw; plus the `render.stats` snapshot. |
+| `stats` | Sums, extremes, averages and spread, for vectors and lists in braces (with large values close together). |
 | `chance`, `chance.*` | The same numbers for a seed (pinned values, checked on every platform), ranges, distributions, shuffling, and `CANVAS_SEED`. |
 | `lookup` | Files are found next to the program when the current folder is elsewhere. |
 | `input` | Clicks, typed keys and `wasKeyPressed` (injected as SDL events), per-frame input rules, `pause()` and frame-rate timing, the title readout, slow motion, `isMouseOver`, and the debug keys (pausing, stepping, the grid, and keeping P, N and G from the program). |
@@ -190,7 +190,7 @@ include/turtle.hpp     turtle graphics
 include/image.hpp      images as pixel grids
 include/audio.hpp      sound
 include/chance.hpp     random numbers
-include/stats.hpp      statistics and quick plots
+include/stats.hpp      statistics
 include/stopwatch.hpp  timing code
 include/input.hpp      helpers for std::cin (and output.hpp: std::cout to a file)
 include/color.hpp      Color and the predefined colors (shared)
@@ -199,7 +199,7 @@ src/turtle.cpp         turtle implementation (draws with canvas)
 src/image.cpp          image implementation and image file I/O
 src/audio.cpp          audio implementation (SDL audio, sound files)
 src/chance.cpp         chance implementation
-src/stats.cpp          stats implementation (plots draw with canvas)
+src/stats.cpp          stats implementation
 src/stopwatch.cpp      stopwatch implementation
 src/color.cpp          hsv() and mix()
 src/recording.cpp      GIF recording of the canvas (msf_gif)

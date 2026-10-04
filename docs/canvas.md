@@ -287,40 +287,29 @@ often, for example once per audio sample.
 
 ### Game helpers
 
-Collisions and buttons come up in every game, and are easy to get subtly
-wrong. Positions and sizes are as for drawing: a circle has a centre and a
-radius, as in `filledCircle`, and a rectangle a centre, half width and half
-height, as in `filledRectangle`.
-
 | Function | Does |
 |---|---|
+| `isMouseOver(x, y, halfWidth, halfHeight)` | True if the mouse is over the rectangle, positioned as in `filledRectangle`, e.g. a button. |
 | `distance(x0, y0, x1, y1)` | The distance between two points. |
-| `circlesOverlap(x0, y0, r0, x1, y1, r1)` | True if the circles overlap. |
-| `rectanglesOverlap(x0, y0, halfWidth0, halfHeight0, x1, y1, halfWidth1, halfHeight1)` | True if the rectangles overlap. |
-| `circleOverlapsRectangle(cx, cy, radius, x, y, halfWidth, halfHeight)` | True if the circle and the rectangle overlap, e.g. a ball and a paddle. |
-| `isMouseOver(x, y, halfWidth, halfHeight)` | True if the mouse is over the rectangle, e.g. a button. |
-
-Shapes that just touch count as overlapping. For a circle and a rectangle the
-rounded corners are taken into account: a ball near a corner doesn't collide
-until it really touches.
 
 ```cpp
-if (canvas::circleOverlapsRectangle(ballX, ballY, radius, padX, padY, 0.1, 0.015)) {
-    ballVY = -ballVY;                                          // bounce off the paddle
-}
 if (canvas::mouseClicked() && canvas::isMouseOver(0.5, 0.2, 0.1, 0.05)) startGame();
+if (canvas::distance(ballX, ballY, coinX, coinY) <= ballRadius + coinRadius) ++score;   // they touch
 ```
 
-When the x and y scales differ, circles are drawn round on the screen, so in
-user coordinates they are not circles. The circle checks use the circles as
-drawn, so they match what the player sees; `distance` is the plain distance
-in user coordinates.
+Other collisions, such as a ball against a paddle, are good exercises; the
+[paddle example](../examples/paddle.cpp) has one.
 
 ## Debugging aids
 
 These help find out why a drawing doesn't look as expected. None of them
 change what is drawn: `save()` and `snapshot()` give the same result with or
 without them, and the grid and watched values appear only on the screen.
+
+Switches throughout canvas come in pairs, named the same way: `show…` and
+`hide…` for things you see in the window (`showGrid`, `showMouseCoordinates`),
+and `enable…` and `disable…` for ways the canvas behaves
+(`enableDoubleBuffering`, `enableHints`, `enableDebugKeys`).
 
 ### Hints
 
@@ -337,8 +326,9 @@ running.
 
 Shapes that are only partly outside the canvas, or drawn in white on top of
 other colours, don't give hints. Hints are on by default.
-`canvas::setHints(false)` turns them off, and so does the environment variable
-`CANVAS_HINTS=0`, for example for an autograder.
+`canvas::disableHints()` turns them off, and so does the environment variable
+`CANVAS_HINTS=0`, for example for an autograder; `enableHints()` turns them
+on again.
 
 ### Coordinates in the title bar
 
@@ -350,7 +340,7 @@ The window title then shows where the mouse is, in your own coordinates:
 `My program | x 0.534, y 0.210`. Point at something to find the numbers for
 it, or check that `setScale` did what you expected. During an animation the
 frame rate is shown too: `| 60 fps`. It keeps working after `main()` returns,
-while the window stays open.
+while the window stays open. `canvas::hideMouseCoordinates()` turns it off.
 
 ### A coordinate grid
 
@@ -463,7 +453,7 @@ canvas: startRecording: 'game.mp4' must end in .gif
 | `show(); pause(16);` in every loop | `setFrameRate(60)` once | Says what is meant, and runs at the same speed on every screen. |
 | — | `hsv`, `mix`, `gray` | Rainbows, gradients and grays without computing red, green and blue. |
 | — | `startRecording("game.gif")` | Students can share and hand in animations. |
-| — | Overlap checks, `isMouseOver` | Collisions and buttons without the usual mistakes. |
+| — | `isMouseOver`, `distance` | Buttons and touching circles in one line. |
 | Exceptions | Message and exit | Clearer for beginners than an uncaught exception. |
 
 ## How it works

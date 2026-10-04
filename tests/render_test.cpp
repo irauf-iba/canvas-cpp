@@ -8,7 +8,6 @@
 // On failure, <scene>-diff.png marks the differing pixels in red.
 
 #include <canvas.hpp>
-#include <stats.hpp>
 #include <turtle.hpp>
 
 #include "internal.hpp"  // screenImage(), for the overlay scene
@@ -329,40 +328,21 @@ image::Image letterF() {
     return img;
 }
 
-void transformsScene() {
-    // Top row: the image functions. Bottom row: pictures turned by canvas.
-    canvas::setCanvasSize(400, 200);
+void rotatedScene() {
+    // Pictures turned by canvas, and a cropped one.
+    canvas::setCanvasSize(400, 120);
     canvas::setXscale(0, 400);
-    canvas::setYscale(0, 200);
+    canvas::setYscale(0, 120);
     canvas::clear(canvas::LIGHT_GRAY);
     const image::Image f = letterF();
-    canvas::picture(25, 150, f);
-    canvas::picture(70, 150, image::flipHorizontal(f));
-    canvas::picture(115, 150, image::flipVertical(f));
-    canvas::picture(165, 150, image::rotate(f, 90));
-    canvas::picture(225, 150, image::rotate(f, 30));
-    canvas::picture(295, 150, image::resize(f, 48, 64));
-    canvas::picture(360, 150, image::crop(f, 0, 0, 24, 19));
-    canvas::picture(40, 50, f, 45);
-    canvas::picture(110, 50, f, -30);
-    canvas::picture(190, 50, f, 48, 64, 180);
-    canvas::picture(270, 50, f, 24, 64, 60);   // stretched, then turned
-    canvas::setYscale(200, 0);                 // y down: still counterclockwise on the screen
-    canvas::picture(350, 150, f, 45);
-}
-
-void statsScene() {
-    // The three plots of one set of values; with a 0 among them, all three
-    // fit the same scale.
-    const std::vector<double> values = {0, 3, 5, 2, 8, 6, 4, 7, 1, 5};
-    canvas::setCanvasSize(400, 300);
-    canvas::setPenColor(canvas::BOOK_LIGHT_BLUE);
-    stats::plotBars(values);
-    canvas::setPenColor(canvas::BOOK_RED);
-    canvas::setPenWidth(2);
-    stats::plotLines(values);
-    canvas::setPenColor(canvas::BLACK);
-    stats::plotPoints(values);
+    canvas::picture(25, 60, f);
+    canvas::picture(70, 60, image::crop(f, 0, 0, 19, 24));     // the top of the F: 19 rows
+    canvas::picture(120, 60, f, 45);
+    canvas::picture(175, 60, f, -30);
+    canvas::picture(240, 60, f, 48, 64, 180);
+    canvas::picture(310, 60, f, 24, 64, 60);   // stretched, then turned
+    canvas::setYscale(120, 0);                 // y down: still counterclockwise on the screen
+    canvas::picture(370, 60, f, 45);
 }
 
 // --- comparison --------------------------------------------------------------
@@ -443,7 +423,7 @@ int main(int argc, char** argv) {
         {"shapes", shapes}, {"polygons", polygons}, {"text", text},
         {"pictures", pictures}, {"clipping", clipping}, {"aspect", aspect},
         {"image", imageScene}, {"turtle", turtleScene}, {"overlay", overlayScene},
-        {"stats", statsScene}, {"colors", colorsScene}, {"transforms", transformsScene},
+        {"colors", colorsScene}, {"rotated", rotatedScene},
     };
     if (argc != 3 || scenes.count(argv[1]) == 0) {
         std::printf("usage: render_test <scene> <reference-dir>\nscenes:");
