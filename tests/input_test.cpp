@@ -218,7 +218,10 @@ void testFrameRate() {
     double next = elapsedMs(start);
     std::printf("late frame waited %.1f ms, the next %.1f ms\n", late, next);
     CHECK(late < 12);                  // well under the 20 ms interval: show() didn't wait
-    CHECK(next > 17 && next < 30);
+    // The next one waits about 20 ms; with "catching up" it wouldn't wait.
+    // The upper limit stays under two intervals, but allows for slow CI
+    // machines that oversleep (30.6 ms seen on macOS).
+    CHECK(next > 17 && next < 38);
 
     // 0 turns it off: 5 frames take much less than 5 intervals of 20 ms.
     canvas::setFrameRate(0);
