@@ -5,6 +5,7 @@
 //        hint_test no-show     (with a window: double buffering, no show())
 //        hint_test off         (setHints(false))
 //        hint_test env         (run with CANVAS_HINTS=0)
+//        hint_test flipped     (a y axis pointing down, in pixel coordinates)
 
 #include <canvas.hpp>
 #include <image.hpp>
@@ -79,6 +80,27 @@ void noShow() {
     SDL_PushEvent(&quit);  // so the window doesn't stay open
 }
 
+void flipped() {
+    // Pixel coordinates with the origin at the top left, as in many graphics
+    // libraries: a 400 x 300 canvas, x from 0 to 400, y from 0 down to 300.
+    canvas::setCanvasSize(400, 300);
+    canvas::setXscale(0, 400);
+    canvas::setYscale(300, 0);
+    canvas::setPenColor(canvas::BOOK_RED);
+    canvas::filledRectangle(50, 30, 40, 20);  // pixels 10..90 across, 10..50 down
+    image::Image img = canvas::snapshot();
+    CHECK(img[20][20] == canvas::BOOK_RED);       // near the top left
+    CHECK(img[45][85] == canvas::BOOK_RED);
+    CHECK(img[60][20] == canvas::WHITE);          // below it
+    CHECK(img[280][20] == canvas::WHITE);         // not at the bottom left
+
+    canvas::circle(500, 150, 20);  // off to the right
+    std::string hints = hintsSoFar();
+    std::printf("%s", hints.c_str());
+    CHECK(count(hints, "canvas: hint: circle at (500, 150) is outside the visible area "
+                       "(x from 0 to 400, y from 300 to 0). Check the coordinates against the scale.") == 1);
+}
+
 void off(bool callSetHints) {
     if (callSetHints) canvas::setHints(false);
     canvas::circle(200, 150, 50);
@@ -96,6 +118,7 @@ int main(int argc, char** argv) {
     else if (mode == "no-show") noShow();
     else if (mode == "off") off(true);
     else if (mode == "env") off(false);
+    else if (mode == "flipped") flipped();
     else return 2;
     return finish();
 }

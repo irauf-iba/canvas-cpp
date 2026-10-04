@@ -206,10 +206,14 @@ void noteOffscreen(double minX, double minY, double maxX, double maxY) {
     s.drewOffscreen = true;
     if (!*s.drawFunction) return;
     if (maxX >= 0 && minX <= s.pw && maxY >= 0 && minY <= s.ph) return;
+    // With the default scale the likely cause is pixel coordinates; otherwise
+    // the coordinates and the scale don't match.
+    const bool defaultScale = s.xmin == 0 && s.xmax == 1 && s.ymin == 0 && s.ymax == 1;
     hint(kHintOffscreen, std::string(s.drawFunction) + " at (" + num(s.drawX) + ", " + num(s.drawY) +
                              ") is outside the visible area (x from " + num(s.xmin) + " to " + num(s.xmax) +
-                             ", y from " + num(s.ymin) + " to " + num(s.ymax) +
-                             "). Coordinates go from 0 to 1 unless you change them with setScale().");
+                             ", y from " + num(s.ymin) + " to " + num(s.ymax) + "). " +
+                             (defaultScale ? "Coordinates go from 0 to 1 unless you change them with setScale()."
+                                           : "Check the coordinates against the scale."));
 }
 
 // ---------------------------------------------------------------------------

@@ -74,11 +74,11 @@ set_tests_properties(turtle PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
 
 # Debugging aids: hints for likely mistakes (and none for look-alikes).
 canvas_test_executable(hint_test SDL3::SDL3)
-foreach(mode IN ITEMS drawing off env)
+foreach(mode IN ITEMS drawing off env flipped)
   add_test(NAME hints.${mode} COMMAND hint_test ${mode})
 endforeach()
 add_test(NAME hints.no-show COMMAND hint_test no-show)
-set_tests_properties(hints.drawing hints.off PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
+set_tests_properties(hints.drawing hints.off hints.flipped PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
 set_tests_properties(hints.env PROPERTIES ENVIRONMENT "CANVAS_HEADLESS=1;CANVAS_HINTS=0")
 set_tests_properties(hints.no-show PROPERTIES ENVIRONMENT SDL_VIDEO_DRIVER=dummy TIMEOUT 20)
 

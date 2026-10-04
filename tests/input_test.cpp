@@ -71,6 +71,16 @@ void testClick() {
     CHECK(!canvas::mouseClicked());  // reported once
 }
 
+void testFlippedYAxis() {
+    // With y pointing down, the mouse's y grows downwards too.
+    canvas::setYscale(1, -1);
+    newFrame();
+    click(0.5f, 0.25f);  // a quarter of the way down
+    CHECK(canvas::mouseClicked());
+    CHECK(std::abs(canvas::mouseY() - (-0.5)) < 0.01);
+    canvas::setScale(-1, 1);  // back to the scale the other tests use
+}
+
 void testUnreadClickIsDropped() {
     newFrame();
     click(0.5f, 0.5f);
@@ -243,6 +253,7 @@ int main() {
     canvas::point(0, 0);  // opens the window
 
     testClick();
+    testFlippedYAxis();
     testUnreadClickIsDropped();
     testClickDuringShowSurvivesPause();
     testTypedKeys();

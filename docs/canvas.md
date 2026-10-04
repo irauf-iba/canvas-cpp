@@ -36,6 +36,29 @@ half-length is measured in x units and used in both directions. `ellipse` and
 `rectangle` take a separate half-width and half-height, and follow each axis's
 scale.
 
+### Origin at the top left, or pixel coordinates
+
+A range can be given the other way round to flip an axis. With
+`setYscale(1, 0)`, (0, 0) is the top-left corner and y grows downwards. Many
+graphics libraries and games use pixel coordinates with the origin at the top
+left, and that works too:
+
+```cpp
+canvas::setCanvasSize(800, 600);
+canvas::setXscale(0, 800);
+canvas::setYscale(600, 0);   // y from 0 at the top to 600 at the bottom
+canvas::filledRectangle(50, 30, 40, 20);   // 40 pixels from the left, 30 from the top
+```
+
+Text and pictures stay upright, and the mouse position, the grid and
+`snapshot()` follow the flipped axis. Two things to know with a flipped axis,
+as in Princeton's StdDraw and Turtle:
+
+- **Angles in `arc` and rotated `text`** are counterclockwise on the screen,
+  so with y pointing down, angle 90 points up the screen, towards smaller y.
+- **The turtle** works in your coordinates: with y pointing down, heading 90
+  points down the screen, and `turnLeft` looks like a right turn.
+
 ## Functions
 
 ### Window and coordinates
