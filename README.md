@@ -20,7 +20,8 @@ the chaos game, turtle spirals, a tune player and more), written for this
 library. Its [README](examples/README.md) lists them all.
 
 **Students:** copy the starter project in [`template`](template) and follow
-its one-page [README](template/README.md). The full
+its one-page [README](template/README.md). The [cheat sheet](docs/cheatsheet.md)
+lists the functions used most, on one page. The full
 [getting-started guide](docs/getting-started.md) covers Visual Studio,
 VS Code, CLion and the command line in more detail.
 
@@ -68,7 +69,7 @@ project(hello CXX)
 include(FetchContent)
 FetchContent_Declare(canvas
   GIT_REPOSITORY https://github.com/irauf-iba/canvas-cpp
-  GIT_TAG        main
+  GIT_TAG        v0.1
   GIT_SHALLOW    TRUE)
 FetchContent_MakeAvailable(canvas)
 
@@ -76,7 +77,10 @@ add_executable(hello hello.cpp)
 target_link_libraries(hello PRIVATE canvas::canvas)
 ```
 
-One target, `canvas::canvas`, provides all the modules. A copy of this
+`GIT_TAG` picks the version. Pin a release such as `v0.1` (see
+[CHANGELOG.md](CHANGELOG.md)) rather than `main`, so that changes to the
+library can't break a project in the middle of a course. One target,
+`canvas::canvas`, provides all the modules. A copy of this
 repository next to the project works too, with `add_subdirectory(canvas-cpp)`.
 
 The first configure downloads SDL, and the first build compiles it, which takes

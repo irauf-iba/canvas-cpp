@@ -8,7 +8,7 @@ project(my_program CXX)
 include(FetchContent)
 FetchContent_Declare(canvas
   GIT_REPOSITORY https://github.com/irauf-iba/canvas-cpp
-  GIT_TAG        main
+  GIT_TAG        v0.1   # the library version this project uses
   GIT_SHALLOW    TRUE)
 FetchContent_MakeAvailable(canvas)
 

@@ -82,16 +82,22 @@ The library stops with a message that says what happened, for example
 - **No sound on Linux:** the sound packages from step 1 were missing when you
   first built. Install them, delete the `build` folder and build again.
 
-The library guides explain every function:
+The [cheat sheet](https://github.com/irauf-iba/canvas-cpp/blob/v0.1/docs/cheatsheet.md)
+lists the functions used most, on one page. The library guides explain every
+function:
 
-- [canvas](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/canvas.md): drawing, animation, mouse and keyboard
-- [turtle](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/turtle.md): drawing by moving and turning
-- [image](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/image.md): images, pixel by pixel
-- [audio](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/audio.md): sound
-- [chance](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/chance.md): random numbers
-- [stats](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/stats.md): averages and spread
-- [stopwatch](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/stopwatch.md): timing code
-- [input](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/input.md): help with `std::cin`, and asking questions
+- [canvas](https://github.com/irauf-iba/canvas-cpp/blob/v0.1/docs/canvas.md): drawing, animation, mouse and keyboard
+- [turtle](https://github.com/irauf-iba/canvas-cpp/blob/v0.1/docs/turtle.md): drawing by moving and turning
+- [image](https://github.com/irauf-iba/canvas-cpp/blob/v0.1/docs/image.md): images, pixel by pixel
+- [audio](https://github.com/irauf-iba/canvas-cpp/blob/v0.1/docs/audio.md): sound
+- [chance](https://github.com/irauf-iba/canvas-cpp/blob/v0.1/docs/chance.md): random numbers
+- [stats](https://github.com/irauf-iba/canvas-cpp/blob/v0.1/docs/stats.md): averages and spread
+- [stopwatch](https://github.com/irauf-iba/canvas-cpp/blob/v0.1/docs/stopwatch.md): timing code
+- [input](https://github.com/irauf-iba/canvas-cpp/blob/v0.1/docs/input.md): help with `std::cin`, and asking questions
+
+The project uses version v0.1 of the library (`GIT_TAG` in
+`CMakeLists.txt`), so it builds the same way all term. Change it only when
+your instructor says so.
 
 More detail on setup and problems is in
-[getting started](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/getting-started.md).
+[getting started](https://github.com/irauf-iba/canvas-cpp/blob/v0.1/docs/getting-started.md).

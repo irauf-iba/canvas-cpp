@@ -72,6 +72,7 @@ A window should open with a blue ball that follows the mouse.
 
 Edit `main.cpp`. The guides explain each library:
 
+- the [cheat sheet](cheatsheet.md): the functions used most, on one page;
 - [canvas](canvas.md): drawing, animation, mouse and keyboard;
 - [turtle](turtle.md): drawing by moving and turning;
 - [image](image.md): images, pixel by pixel;
