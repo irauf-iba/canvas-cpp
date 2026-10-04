@@ -137,6 +137,11 @@ struct State {
     Uint64 framesSince = 0;
     double fps = 0;
     int drawDelay = 0;              // ms, for setDrawDelay()
+
+    // The overlay, drawn over the canvas when it is shown but not into it.
+    double gridXStep = 0, gridYStep = 0;  // 0: no grid
+    std::vector<std::pair<std::string, std::string>> watches;  // name, value, in order
+    std::vector<std::uint8_t> composed;   // the canvas with the overlay drawn on it
     bool atFrameBoundary = false;  // true between consecutive show()/pause() calls
 
     std::map<std::string, image::Image> pictures;  // picture() files, by name
@@ -213,6 +218,8 @@ void noteOffscreen(double minX, double minY, double maxX, double maxY) {
 
 void onExit();
 void present();
+bool hasOverlay();
+const std::vector<std::uint8_t>& withOverlay();
 
 void sizeWindow() {
     State& s = st();
@@ -326,7 +333,8 @@ void present() {
     State& s = st();
     s.dirty = false;
     if (s.headless) return;
-    SDL_UpdateTexture(s.texture, nullptr, s.pixels.data(), s.pw * 4);
+    const std::uint8_t* shown = hasOverlay() ? withOverlay().data() : s.pixels.data();
+    SDL_UpdateTexture(s.texture, nullptr, shown, s.pw * 4);
     repaint();
     s.lastPresent = SDL_GetTicksNS();
     ++s.framesCounted;
@@ -1071,11 +1079,11 @@ double sampleMask(const TextMask& m, double u, double v) {
     return (top * (1 - fv) + bottom * fv) / 255.0;
 }
 
-void drawText(double x, double y, const std::string& text, double align, double degrees) {
+// Draws text anchored at pixel (px, py); see drawText.
+void drawTextPX(double px, double py, const std::string& text, double align, double degrees) {
     TextMask m = renderText(text, align);
     if (m.w == 0 || m.h == 0) return;
     PenBlender pen;
-    const double px = toPX(x), py = toPY(y);
 
     if (degrees == 0) {
         // Snap to whole pixels so unrotated text stays sharp.
@@ -1116,6 +1124,10 @@ void drawText(double x, double y, const std::string& text, double align, double 
             if (a > 1e-4) pen(cx, cy, a);
         }
     }
+}
+
+void drawText(double x, double y, const std::string& text, double align, double degrees) {
+    drawTextPX(toPX(x), toPY(y), text, align, degrees);
 }
 
 // ---------------------------------------------------------------------------
@@ -1206,6 +1218,127 @@ image::Image canvasImage() {
         }
     }
     return out;
+}
+
+// ---------------------------------------------------------------------------
+// The overlay: grid and watched values
+// ---------------------------------------------------------------------------
+
+// A round step giving about ten grid lines across range: 0.1 for 1, 0.5 for 2*pi.
+double niceStep(double range) {
+    double raw = std::abs(range) / 10;
+    double power = std::pow(10, std::floor(std::log10(raw)));
+    double f = raw / power;
+    return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * power;
+}
+
+// A grid value as text with just enough decimals for the step: 0.25, 1.5, 10.
+std::string gridLabel(double value, double step) {
+    int decimals = 0;
+    while (decimals < 6 && std::abs(step * std::pow(10, decimals) - std::round(step * std::pow(10, decimals))) > 1e-9) {
+        ++decimals;
+    }
+    if (std::abs(value) < step * 1e-9) value = 0;  // no "-0"
+    char buffer[32];
+    std::snprintf(buffer, sizeof buffer, "%.*f", decimals, value);
+    return buffer;
+}
+
+bool hasOverlay() {
+    const State& s = st();
+    return s.gridXStep > 0 || !s.watches.empty();
+}
+
+void drawGrid() {
+    State& s = st();
+    const double scale = s.scale;
+    const double fontSize = s.fontSize;
+    s.fontSize = 11;
+    for (int axis = 0; axis < 2; ++axis) {
+        const bool vertical = axis == 0;  // vertical lines, at x values
+        const double lo = vertical ? std::min(s.xmin, s.xmax) : std::min(s.ymin, s.ymax);
+        const double hi = vertical ? std::max(s.xmin, s.xmax) : std::max(s.ymin, s.ymax);
+        double step = vertical ? s.gridXStep : s.gridYStep;
+        while ((hi - lo) / step > 200) step *= 10;  // a readable number of lines
+        for (double k = std::ceil(lo / step - 1e-9); k * step <= hi + step * 1e-9; ++k) {
+            const double v = k * step;
+            const bool zero = std::abs(v) < step * 1e-9;
+            s.pen = zero ? rgb(0, 0, 0, 110) : rgb(0, 0, 0, 40);  // axes darker
+            std::vector<Vec> line;
+            if (vertical) {
+                line = {{toPX(v), 0}, {toPX(v), static_cast<double>(s.ph)}};
+            } else {
+                line = {{0, toPY(v)}, {static_cast<double>(s.pw), toPY(v)}};
+            }
+            strokePX(line, false, 1 * scale);
+            // Labels along the bottom and left edges, except right at the
+            // edges, where they would be cut off or run into each other.
+            s.pen = rgb(0, 0, 0, 150);
+            const double margin = 16 * scale;
+            if (vertical) {
+                const double px = toPX(v);
+                if (px > margin && px < s.pw - margin) drawTextPX(px, s.ph - 8 * scale, gridLabel(v, step), 0.5, 0);
+            } else {
+                const double py = toPY(v);
+                if (py > margin && py < s.ph - margin) drawTextPX(4 * scale, py - 7 * scale, gridLabel(v, step), 0, 0);
+            }
+        }
+    }
+    s.fontSize = fontSize;
+}
+
+void drawWatches() {
+    State& s = st();
+    const double scale = s.scale;
+    const double fontSize = s.fontSize;
+    s.fontSize = 14;
+    std::vector<std::string> lines;
+    double width = 0;
+    for (const auto& w : s.watches) {
+        lines.push_back(w.first + " = " + w.second);
+        width = std::max(width, static_cast<double>(renderText(lines.back(), 0).w));
+    }
+    // In the top-right corner, clear of the grid labels along the left and bottom.
+    const double pad = 6 * scale, lineHeight = 18 * scale;
+    const double x1 = s.pw - 6 * scale, y0 = 6 * scale;
+    const double x0 = x1 - width - 2 * pad, y1 = y0 + lineHeight * static_cast<double>(lines.size()) + pad;
+    s.pen = rgb(255, 255, 255, 215);
+    fillPolygonPX({{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}});
+    s.pen = rgb(0, 0, 0, 90);
+    strokePX({{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}}, true, 1 * scale);
+    s.pen = BLACK;
+    for (std::size_t i = 0; i < lines.size(); ++i) {
+        drawTextPX(x0 + pad, y0 + pad / 2 + lineHeight * (static_cast<double>(i) + 0.5), lines[i], 0, 0);
+    }
+    s.fontSize = fontSize;
+}
+
+// The canvas with the grid and watched values drawn over it. The overlay is
+// drawn into a copy: the canvas itself, save() and snapshot() never see it.
+const std::vector<std::uint8_t>& withOverlay() {
+    State& s = st();
+    s.composed = s.pixels;
+    std::swap(s.pixels, s.composed);  // draw into the copy
+    const Color pen = s.pen;
+    const char* function = s.drawFunction;
+    const bool checkVisible = s.checkVisible;
+    s.drawFunction = "";  // no hints for the overlay
+    s.checkVisible = false;
+    if (s.gridXStep > 0) drawGrid();
+    if (!s.watches.empty()) drawWatches();
+    s.pen = pen;
+    s.drawFunction = function;
+    s.checkVisible = checkVisible;
+    std::swap(s.pixels, s.composed);
+    return s.composed;
+}
+
+// After a change to the overlay: show it soon, as after a drawing call.
+void overlayChanged() {
+    State& s = st();
+    s.dirty = true;
+    if (s.headless || s.doubleBuffered) return;
+    if (SDL_GetTicksNS() - s.lastPresent >= kPresentInterval) present();
 }
 
 // Maps a Key to the SDL keycode of the key with that label.
@@ -1565,6 +1698,56 @@ void setDrawDelay(int ms) {
     st().drawDelay = ms;
 }
 
+void showGrid() {
+    beginDraw();
+    State& s = st();
+    // One step for both directions when the ranges are similar, so the cells
+    // are square; separate steps for, say, x from 0 to 100 and y from -1 to 1.
+    const double xRange = std::abs(s.xmax - s.xmin), yRange = std::abs(s.ymax - s.ymin);
+    if (std::max(xRange, yRange) <= 3 * std::min(xRange, yRange)) {
+        s.gridXStep = s.gridYStep = niceStep(std::max(xRange, yRange));
+    } else {
+        s.gridXStep = niceStep(xRange);
+        s.gridYStep = niceStep(yRange);
+    }
+    overlayChanged();
+}
+
+void showGrid(double step) {
+    checkFinite("showGrid", {step});
+    if (step <= 0) fail("showGrid: the step must be positive");
+    beginDraw();
+    st().gridXStep = st().gridYStep = step;
+    overlayChanged();
+}
+
+void hideGrid() {
+    State& s = st();
+    s.gridXStep = s.gridYStep = 0;
+    if (s.initialized) overlayChanged();
+}
+
+void watch(const std::string& name, const std::string& value) {
+    beginDraw();
+    State& s = st();
+    auto it = std::find_if(s.watches.begin(), s.watches.end(), [&](const auto& w) { return w.first == name; });
+    if (it != s.watches.end()) {
+        if (it->second == value) return;  // nothing new to show
+        it->second = value;
+    } else {
+        s.watches.emplace_back(name, value);
+    }
+    overlayChanged();
+}
+
+void unwatch(const std::string& name) {
+    State& s = st();
+    auto it = std::find_if(s.watches.begin(), s.watches.end(), [&](const auto& w) { return w.first == name; });
+    if (it == s.watches.end()) return;
+    s.watches.erase(it);
+    if (s.initialized) overlayChanged();
+}
+
 void show() {
     endFrame();
     State& s = st();
@@ -1696,6 +1879,17 @@ bool isKeyPressed(Key key) {
 
 void canvas_internal::keepWindowAlive() {
     if (canvas::st().window) canvas::pumpIfDue(SDL_GetTicksNS());
+}
+
+image::Image canvas_internal::screenImage() {
+    canvas::ensureInit();
+    canvas::State& s = canvas::st();
+    if (!canvas::hasOverlay()) return canvas::snapshot();
+    const std::vector<std::uint8_t> original = s.pixels;
+    s.pixels = canvas::withOverlay();
+    image::Image shown = canvas::canvasImage();
+    s.pixels = original;
+    return shown;
 }
 
 void canvas_internal::canvasCenter(double& x, double& y) {

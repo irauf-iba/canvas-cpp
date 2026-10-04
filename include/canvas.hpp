@@ -258,6 +258,25 @@ void showMouseCoordinates(bool on = true);
 // is on, double buffering is ignored. In headless mode it never waits.
 void setDrawDelay(int ms);
 
+// Draws light grid lines over the window, labelled with their coordinates,
+// to help find positions while drawing. showGrid() picks a round step giving
+// about ten lines across (the same for x and y unless their ranges are very
+// different); showGrid(0.25) uses that step in both directions.
+// hideGrid() removes it.
+void showGrid();
+void showGrid(double step);
+void hideGrid();
+
+// Shows a value, labelled with its name, in a box in the top-right corner of
+// the window: canvas::watch("vx", vx) shows "vx = 0.015". Calling it again
+// with the same name updates the value, so in an animation call it every
+// frame. It takes numbers, characters, bool and strings. unwatch(name)
+// removes it.
+void watch(const std::string& name, const std::string& value);
+template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+void watch(const std::string& name, T value);
+void unwatch(const std::string& name);
+
 // ---------------------------------------------------------------------------
 // Mouse
 // ---------------------------------------------------------------------------
@@ -300,7 +319,7 @@ bool isKeyPressed(Key key);
 bool wasKeyPressed(Key key);
 
 // ---------------------------------------------------------------------------
-// Implementation of the text() templates
+// Implementation of the text() and watch() templates
 // ---------------------------------------------------------------------------
 
 namespace detail {
@@ -330,6 +349,9 @@ void textLeft(double x, double y, T value) { textLeft(x, y, detail::toText(value
 
 template <typename T, typename>
 void textRight(double x, double y, T value) { textRight(x, y, detail::toText(value)); }
+
+template <typename T, typename>
+void watch(const std::string& name, T value) { watch(name, detail::toText(value)); }
 
 }  // namespace canvas
 

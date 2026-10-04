@@ -210,7 +210,7 @@ often, for example once per audio sample.
 
 These help find out why a drawing doesn't look as expected. None of them
 change what is drawn: `save()` and `snapshot()` give the same result with or
-without them.
+without them, and the grid and watched values appear only on the screen.
 
 ### Hints
 
@@ -241,6 +241,36 @@ The window title then shows where the mouse is, in your own coordinates:
 it, or check that `setScale` did what you expected. During an animation the
 frame rate is shown too: `| 60 fps`. It keeps working after `main()` returns,
 while the window stays open.
+
+### A coordinate grid
+
+```cpp
+canvas::showGrid();        // a round step, about ten lines across
+canvas::showGrid(0.25);    // or a step of your choice
+canvas::hideGrid();
+```
+
+Light grid lines are drawn over the window, labelled with their coordinates
+along the bottom and left edges; the lines through 0 are darker. The step is
+the same for x and y unless their ranges are very different, as in a plot
+with x from 0 to 100 and y from −1 to 1. The grid is drawn over the canvas
+each time it is shown, so it doesn't need to be drawn again after `clear()`,
+and it doesn't appear in `save()` or `snapshot()`.
+
+### Watching values
+
+```cpp
+canvas::watch("vx", vx);
+canvas::watch("state", "jumping");
+canvas::unwatch("vx");
+```
+
+A box in the top-right corner of the window shows each watched value with its
+name, such as `vx = 0.015`. Calling `watch` again with the same name updates
+the value, so in an animation call it every frame, next to the drawing. It's
+like printing with `std::cout`, but without filling the terminal 60 times a
+second. Values are formatted as by `text()`: numbers, characters, `bool` and
+strings.
 
 ### Slow motion
 

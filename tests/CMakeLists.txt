@@ -28,7 +28,8 @@ add_test(NAME header COMMAND header_test)
 # Snapshot tests against images in tests/reference.
 canvas_test_executable(render_test)
 target_include_directories(render_test SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)
-foreach(scene IN ITEMS shapes polygons text pictures clipping aspect image turtle)
+target_include_directories(render_test PRIVATE ${PROJECT_SOURCE_DIR}/src)  # screenImage()
+foreach(scene IN ITEMS shapes polygons text pictures clipping aspect image turtle overlay)
   add_test(NAME render.${scene}
            COMMAND render_test ${scene} ${CMAKE_CURRENT_SOURCE_DIR}/reference)
   set_tests_properties(render.${scene} PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
@@ -80,6 +81,12 @@ add_test(NAME hints.no-show COMMAND hint_test no-show)
 set_tests_properties(hints.drawing hints.off PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
 set_tests_properties(hints.env PROPERTIES ENVIRONMENT "CANVAS_HEADLESS=1;CANVAS_HINTS=0")
 set_tests_properties(hints.no-show PROPERTIES ENVIRONMENT SDL_VIDEO_DRIVER=dummy TIMEOUT 20)
+
+# The grid and watched values are drawn over the canvas, never into it.
+canvas_test_executable(overlay_test)
+target_include_directories(overlay_test PRIVATE ${PROJECT_SOURCE_DIR}/src)
+add_test(NAME overlay COMMAND overlay_test)
+set_tests_properties(overlay PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
 
 # text() with numbers and characters.
 canvas_test_executable(text_test)
@@ -154,6 +161,7 @@ set(error_cases
   "missing-font|setFont: cannot open 'no-such-font.ttf'"
   "negative-pause|pause: ms must not be negative"
   "negative-frame-rate|setFrameRate: the frame rate must not be negative"
+  "grid-step|showGrid: the step must be positive"
   "image-get-outside|image: getPixel: col 5 is outside the image (0 to 4)"
   "image-set-outside|image: setPixel: row -1 is outside the image (0 to 2)"
   "image-index-outside|image: [row][col]: row 3 is outside the image (0 to 2)"

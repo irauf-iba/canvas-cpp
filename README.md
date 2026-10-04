@@ -43,9 +43,9 @@ int main() {
   function, e.g. `canvas: filledCircle: radius must not be negative`. Likely
   mistakes that aren't errors, such as drawing outside the canvas, give a
   hint instead.
-- **Help with debugging.** The window title can show the mouse position in the
-  program's own coordinates, and slow motion shows the order in which things
-  are drawn.
+- **Help with debugging.** The window can show a coordinate grid, the mouse
+  position and live values of variables, and slow motion shows the order in
+  which things are drawn.
 - **Ready for autograding.** Drawing is done in software, so output is the same
   everywhere. Programs can run without a window (`CANVAS_HEADLESS=1`), their
   sound can be captured to a file (`CANVAS_AUDIO_CAPTURE=out.wav`), and their
@@ -118,6 +118,7 @@ The tests need no display or speakers:
 | `render.*` | Snapshot tests: each scene is compared with `tests/reference/<scene>.png`, allowing small differences. On failure, `<scene>-diff.png` in the build's `tests` folder marks the differing pixels in red. |
 | `image` | Creating, changing, saving and loading images; `canvas::snapshot()` and `canvas::picture()` with an image. |
 | `text` | `text()` with numbers and characters: formatting and choice of overload. |
+| `overlay` | The grid and watched values appear on the screen but never in `snapshot()`; updating and removing values. |
 | `hints.*` | Each hint appears once for its mistake, and not for look-alikes (zero-size or partly visible shapes, white on colour, pictures); `setHints(false)` and `CANVAS_HINTS=0` turn them off. |
 | `turtle` | Turtle positions and headings (including wrapping past 360°), the pen, and a square closing exactly; plus the `render.turtle` snapshot. |
 | `reading`, `reading.stdin`, `ask*`, `output` | `fromFile` with plain `std::cin` (Windows line endings, byte-order mark), `skipRestOfLine`, `skipEmptyLines`, `getLine` and `readAll…` on files and real standard input, the exact prompts and messages of the `ask…` functions, the string helpers, and `output::toFile`. |

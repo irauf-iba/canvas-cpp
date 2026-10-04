@@ -10,6 +10,8 @@
 #include <canvas.hpp>
 #include <turtle.hpp>
 
+#include "internal.hpp"  // screenImage(), for the overlay scene
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -274,6 +276,20 @@ void turtleScene() {
     }
 }
 
+void overlayScene() {
+    // What the window shows with the grid and watched values: an automatic
+    // grid step for a 0..4 by 0..3 scale, and a few values.
+    canvas::setCanvasSize(400, 300);
+    canvas::setXscale(0, 4);
+    canvas::setYscale(0, 3);
+    canvas::setPenColor(canvas::BOOK_RED);
+    canvas::filledCircle(2.5, 1.5, 0.6);
+    canvas::showGrid();
+    canvas::watch("vx", 0.015);
+    canvas::watch("score", 120);
+    canvas::watch("state", "jumping");
+}
+
 // --- comparison --------------------------------------------------------------
 
 struct Pixels {
@@ -351,7 +367,7 @@ int main(int argc, char** argv) {
     const std::map<std::string, std::function<void()>> scenes = {
         {"shapes", shapes}, {"polygons", polygons}, {"text", text},
         {"pictures", pictures}, {"clipping", clipping}, {"aspect", aspect},
-        {"image", imageScene}, {"turtle", turtleScene},
+        {"image", imageScene}, {"turtle", turtleScene}, {"overlay", overlayScene},
     };
     if (argc != 3 || scenes.count(argv[1]) == 0) {
         std::printf("usage: render_test <scene> <reference-dir>\nscenes:");
@@ -364,7 +380,11 @@ int main(int argc, char** argv) {
     const std::string referencePath = std::string(argv[2]) + "/" + scene + ".png";
 
     scenes.at(scene)();
-    canvas::save(actualPath);
+    if (scene == "overlay") {
+        image::save(canvas_internal::screenImage(), actualPath);  // the overlay isn't in the canvas
+    } else {
+        canvas::save(actualPath);
+    }
 
     const char* update = std::getenv("CANVAS_UPDATE_REFERENCES");
     if (update && std::strcmp(update, "1") == 0) {

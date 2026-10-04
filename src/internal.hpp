@@ -61,6 +61,10 @@ void keepWindowAlive();
 // The centre of the canvas in user coordinates (with the current scale).
 void canvasCenter(double& x, double& y);
 
+// What the window shows: the canvas with the grid and watched values over it,
+// at logical size. For tests; snapshot() never includes the overlay.
+image::Image screenImage();
+
 }  // namespace canvas_internal
 
 #endif  // CANVAS_INTERNAL_HPP
