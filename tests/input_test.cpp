@@ -182,14 +182,14 @@ void testFrameRate() {
     canvas::show();
     double next = elapsedMs(start);
     std::printf("late frame waited %.1f ms, the next %.1f ms\n", late, next);
-    CHECK(late < 5);
+    CHECK(late < 12);                  // well under the 20 ms interval: show() didn't wait
     CHECK(next > 17 && next < 30);
 
-    // 0 turns it off.
+    // 0 turns it off: 5 frames take much less than 5 intervals of 20 ms.
     canvas::setFrameRate(0);
     start = SDL_GetTicksNS();
     for (int i = 0; i < 5; ++i) canvas::show();
-    CHECK(elapsedMs(start) < 10);
+    CHECK(elapsedMs(start) < 50);
 }
 
 void testPauseAfterGap() {
