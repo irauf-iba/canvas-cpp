@@ -192,6 +192,39 @@ void testFrameRate() {
     CHECK(elapsedMs(start) < 50);
 }
 
+void testMouseCoordinatesInTitle() {
+    canvas::setTitle("Test");
+    canvas::showMouseCoordinates();
+    SDL_Delay(40);  // the title is updated at most about 30 times a second
+    SDL_Event e{};
+    e.type = SDL_EVENT_MOUSE_MOTION;
+    e.motion.windowID = SDL_GetWindowID(window());
+    int w, h;
+    SDL_GetWindowSize(window(), &w, &h);
+    e.motion.x = 0.75f * static_cast<float>(w);
+    e.motion.y = 0.25f * static_cast<float>(h);
+    SDL_PushEvent(&e);
+    canvas::pause(0);
+    std::string title = SDL_GetWindowTitle(window());
+    std::printf("title: %s\n", title.c_str());
+    CHECK(title.rfind("Test | x 0.500, y 0.500", 0) == 0);  // scale is -1..1 here
+    canvas::showMouseCoordinates(false);
+    CHECK(std::string(SDL_GetWindowTitle(window())) == "Test");
+}
+
+void testDrawDelay() {
+    canvas::setDrawDelay(20);
+    Uint64 start = SDL_GetTicksNS();
+    for (int i = 0; i < 5; ++i) canvas::point(0, 0);
+    double ms = elapsedMs(start);
+    canvas::setDrawDelay(0);
+    std::printf("5 drawing calls with setDrawDelay(20) took %.1f ms\n", ms);
+    CHECK(ms > 95 && ms < 200);
+    start = SDL_GetTicksNS();
+    for (int i = 0; i < 5; ++i) canvas::point(0, 0);
+    CHECK(elapsedMs(start) < 50);  // off again
+}
+
 void testPauseAfterGap() {
     // A one-off pause after a long gap waits the full time.
     canvas::pause(0);
@@ -219,6 +252,8 @@ int main() {
     testWasKeyPressed();
     testPausePacing();
     testFrameRate();
+    testMouseCoordinatesInTitle();
+    testDrawDelay();
     testPauseAfterGap();
 
     // Close the window so the program can end instead of waiting for the user.

@@ -206,6 +206,55 @@ if (canvas::isKeyPressed(canvas::Key::Space)) speed = 2;                        
 Input queries are cheap, about 50 ns, so a program can check the keyboard very
 often, for example once per audio sample.
 
+## Debugging aids
+
+These help find out why a drawing doesn't look as expected. None of them
+change what is drawn: `save()` and `snapshot()` give the same result with or
+without them.
+
+### Hints
+
+When a drawing call probably doesn't do what was meant, a short hint is
+printed to the terminal, once for each kind of problem. The program keeps
+running.
+
+| Mistake | Hint |
+|---|---|
+| A shape entirely outside the canvas, often because of pixel coordinates | `canvas: hint: circle at (200, 150) is outside the visible area (x from 0 to 1, y from 0 to 1). Coordinates go from 0 to 1 unless you change them with setScale().` |
+| A shape in the background colour, so nothing changes | `canvas: hint: filledCircle at (0.8, 0.2) can't be seen: it is drawn in WHITE on a WHITE background. Change the colour with setPenColor().` |
+| A fully transparent pen | `canvas: hint: the pen colour is fully transparent (alpha 0), so line draws nothing. Use an alpha above 0, or leave it out.` |
+| Double buffering on, but `show()` never called for two seconds | `canvas: hint: enableDoubleBuffering() is on, so drawing appears on screen only when show() is called.` |
+
+Shapes that are only partly outside the canvas, or drawn in white on top of
+other colours, don't give hints. Hints are on by default.
+`canvas::setHints(false)` turns them off, and so does the environment variable
+`CANVAS_HINTS=0`, for example for an autograder.
+
+### Coordinates in the title bar
+
+```cpp
+canvas::showMouseCoordinates();
+```
+
+The window title then shows where the mouse is, in your own coordinates:
+`My program | x 0.534, y 0.210`. Point at something to find the numbers for
+it, or check that `setScale` did what you expected. During an animation the
+frame rate is shown too: `| 60 fps`. It keeps working after `main()` returns,
+while the window stays open.
+
+### Slow motion
+
+```cpp
+canvas::setDrawDelay(30);   // 30 ms after every drawing call
+```
+
+After every drawing call the canvas is shown and the program waits, so you
+can watch the order in which things are drawn: how a loop fills the canvas,
+or how recursion builds a fractal (try it with `examples/textbook/htree.cpp`
+or `examples/koch.cpp`). While it is on, double buffering is ignored, so each
+step is visible. `setDrawDelay(0)` turns it off; in headless mode it never
+waits.
+
 ## Headless mode
 
 If the environment variable `CANVAS_HEADLESS` is set to 1, no window is opened.

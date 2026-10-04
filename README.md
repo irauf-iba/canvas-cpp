@@ -40,7 +40,12 @@ int main() {
 - **Easy to install.** Students need only CMake and a C++17 compiler. SDL3 is
   downloaded and linked statically, and stays hidden from student code.
 - **Clear errors.** Mistakes stop the program with a message that names the
-  function, e.g. `canvas: filledCircle: radius must not be negative`.
+  function, e.g. `canvas: filledCircle: radius must not be negative`. Likely
+  mistakes that aren't errors, such as drawing outside the canvas, give a
+  hint instead.
+- **Help with debugging.** The window title can show the mouse position in the
+  program's own coordinates, and slow motion shows the order in which things
+  are drawn.
 - **Ready for autograding.** Drawing is done in software, so output is the same
   everywhere. Programs can run without a window (`CANVAS_HEADLESS=1`), their
   sound can be captured to a file (`CANVAS_AUDIO_CAPTURE=out.wav`), and their
@@ -113,11 +118,12 @@ The tests need no display or speakers:
 | `render.*` | Snapshot tests: each scene is compared with `tests/reference/<scene>.png`, allowing small differences. On failure, `<scene>-diff.png` in the build's `tests` folder marks the differing pixels in red. |
 | `image` | Creating, changing, saving and loading images; `canvas::snapshot()` and `canvas::picture()` with an image. |
 | `text` | `text()` with numbers and characters: formatting and choice of overload. |
+| `hints.*` | Each hint appears once for its mistake, and not for look-alikes (zero-size or partly visible shapes, white on colour, pictures); `setHints(false)` and `CANVAS_HINTS=0` turn them off. |
 | `turtle` | Turtle positions and headings (including wrapping past 360°), the pen, and a square closing exactly; plus the `render.turtle` snapshot. |
 | `reading`, `reading.stdin`, `ask*`, `output` | `fromFile` with plain `std::cin` (Windows line endings, byte-order mark), `skipRestOfLine`, `skipEmptyLines`, `getLine` and `readAll…` on files and real standard input, the exact prompts and messages of the `ask…` functions, the string helpers, and `output::toFile`. |
 | `chance`, `chance.*` | The same numbers for a seed (pinned values, checked on every platform), ranges, distributions, shuffling, and `CANVAS_SEED`. |
 | `lookup` | Files are found next to the program when the current folder is elsewhere. |
-| `input` | Clicks, typed keys and `wasKeyPressed` (injected as SDL events), per-frame input rules, `pause()` timing. |
+| `input` | Clicks, typed keys and `wasKeyPressed` (injected as SDL events), per-frame input rules, `pause()` and frame-rate timing, the title readout, slow motion. |
 | `window.*` | The window stays open after `main()` returns, and closing it ends the program. |
 | `audio` | Sound files, mixing down, sample-rate conversion, clipping and capture, without a device. |
 | `audio.*` | Real-time playback, background sounds, sound at program exit, and closing the window while that sound finishes, with the `dummy` driver; mixing in the device output, with the `disk` driver. |

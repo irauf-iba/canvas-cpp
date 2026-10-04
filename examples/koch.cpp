@@ -26,6 +26,7 @@ int main() {
 
     canvas::setTitle("Koch snowflake");
     canvas::setPenColor(canvas::BOOK_BLUE);
+    // canvas::setDrawDelay(10);   // uncomment to watch the recursion draw it, line by line
     turtle::penUp();
     turtle::moveTo(0.2, 0.68);  // the top left corner of the triangle
     turtle::penDown();

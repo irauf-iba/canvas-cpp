@@ -31,5 +31,6 @@ int main(int argc, char** argv) {
     int order = argc > 1 ? input::toInt(argv[1]) : 5;
     canvas::setTitle("H-tree");
     canvas::setPenColor(canvas::BOOK_RED);
+    // canvas::setDrawDelay(30);   // uncomment to watch the recursion draw it, line by line
     htree(order, 0.5, 0.5, 0.5);
 }

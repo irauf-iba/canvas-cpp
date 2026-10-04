@@ -229,6 +229,36 @@ void save(const std::string& filename);
 image::Image snapshot();
 
 // ---------------------------------------------------------------------------
+// Debugging aids
+//
+// None of these change what is drawn: save() and snapshot() are the same
+// with or without them.
+// ---------------------------------------------------------------------------
+
+// Hints: when a drawing call probably doesn't do what was meant, a short
+// hint is printed to the terminal (once for each kind), for example
+//     canvas: hint: circle at (200, 150) is outside the visible area (x from
+//     0 to 1, y from 0 to 1). Coordinates go from 0 to 1 unless you change
+//     them with setScale().
+// Hints are given for shapes entirely outside the canvas, shapes in the
+// background colour that can't be seen, a fully transparent pen, and double
+// buffering without show(). They never stop the program. On by default;
+// setHints(false), or the environment variable CANVAS_HINTS=0, turns them off.
+void setHints(bool on);
+
+// Shows the mouse position, in canvas coordinates, in the window title, e.g.
+// "My program | x 0.534, y 0.210". Point at something to find its
+// coordinates. During an animation the frame rate is shown too
+// ("| 60 fps"). showMouseCoordinates(false) turns it off.
+void showMouseCoordinates(bool on = true);
+
+// Slow motion: after every drawing call, the canvas is shown and the program
+// waits ms milliseconds, so you can watch the order in which things are drawn,
+// e.g. how recursion builds a fractal. 0 turns it off (the default). While it
+// is on, double buffering is ignored. In headless mode it never waits.
+void setDrawDelay(int ms);
+
+// ---------------------------------------------------------------------------
 // Mouse
 // ---------------------------------------------------------------------------
 

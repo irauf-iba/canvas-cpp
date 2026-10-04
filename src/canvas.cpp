@@ -31,6 +31,7 @@
 #include <map>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "internal.hpp"
@@ -118,6 +119,24 @@ struct State {
     std::array<char, kKeyBufferSize> keys{};
     int keyCount = 0, keyRead = 0;
     std::array<bool, kKeyCount> keyWentDown{};  // keys pressed this frame, for wasKeyPressed()
+
+    // Debugging aids: hints, the title readout and slow motion.
+    bool hints = true;              // setHints(false) or CANVAS_HINTS=0 turns them off
+    unsigned hintsShown = 0;        // the kinds of hint already printed
+    Color background = WHITE;       // the colour of the last clear()
+    const char* drawFunction = "";  // the drawing call in progress, for hints
+    double drawX = 0, drawY = 0;
+    bool drewOffscreen = false;
+    bool checkVisible = false;      // notice whether the call changes any pixel
+    bool changedPixel = false;
+    Uint64 dirtySince = 0;          // when the canvas first changed after it was shown
+    bool showCoordinates = false;
+    bool titleStale = false;        // the mouse moved since the title was set
+    Uint64 lastTitleUpdate = 0;
+    int framesCounted = 0;
+    Uint64 framesSince = 0;
+    double fps = 0;
+    int drawDelay = 0;              // ms, for setDrawDelay()
     bool atFrameBoundary = false;  // true between consecutive show()/pause() calls
 
     std::map<std::string, image::Image> pictures;  // picture() files, by name
@@ -141,6 +160,51 @@ void checkFinite(const char* function, std::initializer_list<double> values) {
 
 void checkNonNegative(const char* function, const char* name, double v) {
     if (v < 0) fail(std::string(function) + ": " + name + " must not be negative");
+}
+
+// --- Hints ---------------------------------------------------------------------
+
+// Each kind of hint is printed once per run.
+enum HintKind : unsigned { kHintOffscreen = 1, kHintSameColour = 2, kHintTransparent = 4, kHintNoShow = 8 };
+
+void hint(unsigned kind, const std::string& message) {
+    State& s = st();
+    if (!s.hints || (s.hintsShown & kind)) return;
+    s.hintsShown |= kind;
+    std::fprintf(stderr, "canvas: hint: %s\n", message.c_str());
+}
+
+std::string num(double v) {
+    char buffer[32];
+    std::snprintf(buffer, sizeof buffer, "%g", v);
+    return buffer;
+}
+
+std::string colourName(Color c) {
+    static const std::pair<Color, const char*> names[] = {
+        {BLACK, "BLACK"}, {WHITE, "WHITE"}, {GRAY, "GRAY"}, {LIGHT_GRAY, "LIGHT_GRAY"},
+        {DARK_GRAY, "DARK_GRAY"}, {RED, "RED"}, {GREEN, "GREEN"}, {BLUE, "BLUE"}, {CYAN, "CYAN"},
+        {MAGENTA, "MAGENTA"}, {YELLOW, "YELLOW"}, {ORANGE, "ORANGE"}, {PINK, "PINK"},
+        {BROWN, "BROWN"}, {PURPLE, "PURPLE"}, {BOOK_BLUE, "BOOK_BLUE"},
+        {BOOK_LIGHT_BLUE, "BOOK_LIGHT_BLUE"}, {BOOK_RED, "BOOK_RED"}};
+    for (const auto& n : names) {
+        if (n.first == c) return n.second;
+    }
+    return "rgb(" + std::to_string(c.r) + ", " + std::to_string(c.g) + ", " + std::to_string(c.b) + ")";
+}
+
+// Called when a drawing call leaves nothing to draw on the canvas. Gives the
+// hint only if its pixel bounding box really lies outside the canvas, not for
+// a shape of zero size inside it.
+void noteOffscreen(double minX, double minY, double maxX, double maxY) {
+    State& s = st();
+    s.drewOffscreen = true;
+    if (!*s.drawFunction) return;
+    if (maxX >= 0 && minX <= s.pw && maxY >= 0 && minY <= s.ph) return;
+    hint(kHintOffscreen, std::string(s.drawFunction) + " at (" + num(s.drawX) + ", " + num(s.drawY) +
+                             ") is outside the visible area (x from " + num(s.xmin) + " to " + num(s.xmax) +
+                             ", y from " + num(s.ymin) + " to " + num(s.ymax) +
+                             "). Coordinates go from 0 to 1 unless you change them with setScale().");
 }
 
 // ---------------------------------------------------------------------------
@@ -210,6 +274,7 @@ void ensureInit() {
     if (s.initialized) return;
     s.initialized = true;
     s.headless = canvas_internal::headlessRequested();
+    if (const char* h = std::getenv("CANVAS_HINTS"); h && std::strcmp(h, "0") == 0) s.hints = false;
     if (s.headless) {
         sizeWindow();
     } else {
@@ -228,6 +293,34 @@ void repaint() {
     SDL_RenderPresent(s.renderer);
 }
 
+// Sets the window title, followed by the mouse position and the frame rate
+// if showMouseCoordinates() is on.
+void updateTitle() {
+    State& s = st();
+    if (!s.window) return;
+    s.lastTitleUpdate = SDL_GetTicksNS();
+    s.titleStale = false;
+    if (!s.showCoordinates) {
+        SDL_SetWindowTitle(s.window, s.title.c_str());
+        return;
+    }
+    double x = s.xmin + s.mouseWX / s.windowW * (s.xmax - s.xmin);
+    double y = s.ymax - s.mouseWY / s.windowH * (s.ymax - s.ymin);
+    // About three significant digits for the range shown: 0.534 for 0 to 1, 53.4 for 0 to 100.
+    auto decimals = [](double range) {
+        return std::clamp(3 - static_cast<int>(std::floor(std::log10(std::abs(range)))), 0, 6);
+    };
+    // The frame rate only while frames are being shown, e.g. in an animation.
+    char rate[32] = "";
+    if (s.fps > 0 && s.lastTitleUpdate - s.lastPresent < 1'500'000'000) {
+        std::snprintf(rate, sizeof rate, " | %.0f fps", s.fps);
+    }
+    char buffer[512];
+    std::snprintf(buffer, sizeof buffer, "%s | x %.*f, y %.*f%s", s.title.c_str(), decimals(s.xmax - s.xmin), x,
+                  decimals(s.ymax - s.ymin), y, rate);
+    SDL_SetWindowTitle(s.window, buffer);
+}
+
 // Copies the canvas to the screen.
 void present() {
     State& s = st();
@@ -236,6 +329,13 @@ void present() {
     SDL_UpdateTexture(s.texture, nullptr, s.pixels.data(), s.pw * 4);
     repaint();
     s.lastPresent = SDL_GetTicksNS();
+    ++s.framesCounted;
+    if (s.lastPresent - s.framesSince >= 1'000'000'000) {
+        s.fps = s.framesCounted * 1e9 / static_cast<double>(s.lastPresent - s.framesSince);
+        s.framesCounted = 0;
+        s.framesSince = s.lastPresent;
+        if (s.showCoordinates) updateTitle();
+    }
 }
 
 // Keys already read free their slots, so the limit applies to unread keys.
@@ -287,6 +387,7 @@ void handleEvent(const SDL_Event& e) {
     case SDL_EVENT_MOUSE_MOTION:
         s.mouseWX = e.motion.x;
         s.mouseWY = e.motion.y;
+        s.titleStale = s.showCoordinates;
         break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
         s.mouseWX = e.button.x;
@@ -332,6 +433,7 @@ void pollEvents() {
     }
     SDL_Event e;
     while (SDL_PeepEvents(&e, 1, SDL_GETEVENT, SDL_EVENT_FIRST, SDL_EVENT_LAST) > 0) handleEvent(e);
+    if (s.titleStale && now - s.lastTitleUpdate > 30'000'000) updateTitle();
 }
 
 // Lets the OS know the window is alive, but leaves input events queued for
@@ -349,12 +451,37 @@ void pumpIfDue(Uint64 now) {
     }
 }
 
+// Waits ms milliseconds, keeping the window responsive.
+void waitWithEvents(int ms) {
+    const Uint64 end = SDL_GetTicksNS() + static_cast<Uint64>(ms) * 1'000'000;
+    for (Uint64 now = SDL_GetTicksNS(); now < end; now = SDL_GetTicksNS()) {
+        pollEvents();
+        SDL_DelayPrecise(std::min<Uint64>(end - now, 10'000'000));
+    }
+}
+
 // Called after every drawing operation.
 void afterDraw() {
     State& s = st();
+    if (s.checkVisible && !s.changedPixel && !s.drewOffscreen) {
+        hint(kHintSameColour, std::string(s.drawFunction) + " at (" + num(s.drawX) + ", " + num(s.drawY) +
+                                  ") can't be seen: it is drawn in " + colourName(s.pen) + " on a " +
+                                  colourName(s.background) + " background. Change the colour with setPenColor().");
+    }
+    s.checkVisible = false;
+    const bool wasDirty = s.dirty;
     s.dirty = true;
     if (s.headless) return;
     Uint64 now = SDL_GetTicksNS();
+    if (!wasDirty) s.dirtySince = now;
+    if (s.drawDelay > 0) {  // slow motion: show every step
+        present();
+        waitWithEvents(s.drawDelay);
+        return;
+    }
+    if (s.doubleBuffered && now - s.dirtySince > 2'000'000'000) {
+        hint(kHintNoShow, "enableDoubleBuffering() is on, so drawing appears on screen only when show() is called.");
+    }
     if (!s.doubleBuffered && now - s.lastPresent >= kPresentInterval) present();
     pumpIfDue(now);
 }
@@ -363,6 +490,28 @@ void afterDraw() {
 void beginDraw() {
     ensureInit();
     st().atFrameBoundary = false;
+}
+
+// Entry point for a drawing call at (x, y), recorded for hints. usesPen is
+// false for pictures, which don't draw in the pen colour.
+void beginDraw(const char* function, double x, double y, bool usesPen = true) {
+    beginDraw();
+    State& s = st();
+    s.drawFunction = function;
+    s.drawX = x;
+    s.drawY = y;
+    s.drewOffscreen = false;
+    s.changedPixel = false;
+    s.checkVisible = usesPen && s.hints && !(s.hintsShown & kHintSameColour) && s.pen == s.background &&
+                     s.pen.a > 0;
+    if (usesPen && s.pen.a == 0) {
+        hint(kHintTransparent, "the pen colour is fully transparent (alpha 0), so " + std::string(function) +
+                                   " draws nothing. Use an alpha above 0, or leave it out.");
+    }
+}
+
+void beginDraw(const char* function, const std::vector<Point>& points) {
+    beginDraw(function, points.empty() ? 0 : points[0].x, points.empty() ? 0 : points[0].y);
 }
 
 // Entry point for input queries: show pending drawing, then read events.
@@ -401,6 +550,11 @@ void onExit() {
         while (SDL_WaitEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT || e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) break;
             if (e.type == SDL_EVENT_WINDOW_EXPOSED) repaint();
+            if (e.type == SDL_EVENT_MOUSE_MOTION && s.showCoordinates) {  // keep the readout going
+                s.mouseWX = e.motion.x;
+                s.mouseWY = e.motion.y;
+                updateTitle();
+            }
         }
     }
     // Only video: the audio module may still be finishing its sound.
@@ -481,9 +635,21 @@ struct PenBlender {
     std::uint8_t* pixels = st().pixels.data();
     std::size_t stride = static_cast<std::size_t>(st().pw) * 4;
     Color c = st().pen;
+    bool track = st().checkVisible;  // for the "can't be seen" hint
+    bool* changed = &st().changedPixel;
 
     void operator()(int x, int y, double coverage) const {
         std::uint8_t* p = pixels + static_cast<std::size_t>(y) * stride + static_cast<std::size_t>(x) * 4;
+        if (track) {
+            const std::uint8_t before[4] = {p[0], p[1], p[2], p[3]};
+            draw(p, coverage);
+            if (std::memcmp(before, p, 4) != 0) *changed = true;
+            return;
+        }
+        draw(p, coverage);
+    }
+
+    void draw(std::uint8_t* p, double coverage) const {
         unsigned a = std::min(255u, static_cast<unsigned>(coverage * c.a + 0.5));
         if (a == 0) return;
         if (p[3] != 255) {
@@ -588,7 +754,10 @@ void fillPolygonPX(const std::vector<Vec>& pts) {
         maxY = std::max(maxY, p.y);
     }
     Box box = clipBox(minX, minY, maxX, maxY);
-    if (box.empty()) return;
+    if (box.empty()) {
+        noteOffscreen(minX, minY, maxX, maxY);
+        return;
+    }
 
     const int w = box.w(), h = box.h(), stride = w + 2;
     std::vector<float>& acc = st().scratch;
@@ -648,7 +817,10 @@ void strokePX(const std::vector<Vec>& pts, bool closed, double width) {
         maxY = std::max(maxY, p.y);
     }
     Box box = clipBox(minX - reach, minY - reach, maxX + reach, maxY + reach);
-    if (box.empty()) return;
+    if (box.empty()) {
+        noteOffscreen(minX - reach, minY - reach, maxX + reach, maxY + reach);
+        return;
+    }
 
     // The mask is all zeros between calls; only pixels near the segments are
     // written, and the second pass resets them. This keeps the cost
@@ -910,6 +1082,7 @@ void drawText(double x, double y, const std::string& text, double align, double 
         int left = static_cast<int>(std::lround(px - m.anchorX));
         int top = static_cast<int>(std::lround(py - m.anchorY));
         Box box = clipBox(left, top, left + m.w, top + m.h);
+        if (box.empty()) noteOffscreen(left, top, left + m.w, top + m.h);
         for (int cy = box.y0; cy < box.y1; ++cy) {
             for (int cx = box.x0; cx < box.x1; ++cx) {
                 std::uint8_t a = m.alpha[static_cast<std::size_t>((cy - top) * m.w + (cx - left))];
@@ -934,6 +1107,7 @@ void drawText(double x, double y, const std::string& text, double align, double 
         }
     }
     Box box = clipBox(minX - 1, minY - 1, maxX + 1, maxY + 1);
+    if (box.empty()) noteOffscreen(minX - 1, minY - 1, maxX + 1, maxY + 1);
     for (int cy = box.y0; cy < box.y1; ++cy) {
         for (int cx = box.x0; cx < box.x1; ++cx) {
             double dx = cx + 0.5 - px, dy = cy + 0.5 - py;
@@ -962,6 +1136,7 @@ void drawImagePX(const image::Image& img, double cx, double cy, double dw, doubl
     if (dw <= 0 || dh <= 0 || img.width == 0 || img.height == 0) return;
     const double left = std::round(cx - dw / 2), top = std::round(cy - dh / 2);
     Box box = clipBox(left, top, left + dw, top + dh);
+    if (box.empty()) noteOffscreen(left, top, left + dw, top + dh);
     const double sx = img.width / dw, sy = img.height / dh;
     auto texel = [&](int x, int y) -> const Color& {
         x = std::clamp(x, 0, img.width - 1);
@@ -1075,9 +1250,8 @@ void setCanvasSize(int width, int height) {
 }
 
 void setTitle(const std::string& title) {
-    State& s = st();
-    s.title = title;
-    if (s.window) SDL_SetWindowTitle(s.window, title.c_str());
+    st().title = title;
+    updateTitle();
 }
 
 void setXscale(double min, double max) {
@@ -1145,14 +1319,14 @@ void setFontSize(double pixels) {
 
 void point(double x, double y) {
     checkFinite("point", {x, y});
-    beginDraw();
+    beginDraw("point", x, y);
     strokePX({toPixel(x, y)}, false, std::max(1.0, penWidthPX()));
     afterDraw();
 }
 
 void line(double x0, double y0, double x1, double y1) {
     checkFinite("line", {x0, y0, x1, y1});
-    beginDraw();
+    beginDraw("line", x0, y0);
     strokePX({toPixel(x0, y0), toPixel(x1, y1)}, false, penWidthPX());
     afterDraw();
 }
@@ -1160,7 +1334,7 @@ void line(double x0, double y0, double x1, double y1) {
 void circle(double x, double y, double radius) {
     checkFinite("circle", {x, y, radius});
     checkNonNegative("circle", "radius", radius);
-    beginDraw();
+    beginDraw("circle", x, y);
     strokePX(ellipsePX(toPixel(x, y), lengthPX(radius), lengthPX(radius), 0, 360, true), true,
              penWidthPX());
     afterDraw();
@@ -1169,7 +1343,7 @@ void circle(double x, double y, double radius) {
 void filledCircle(double x, double y, double radius) {
     checkFinite("filledCircle", {x, y, radius});
     checkNonNegative("filledCircle", "radius", radius);
-    beginDraw();
+    beginDraw("filledCircle", x, y);
     fillPolygonPX(ellipsePX(toPixel(x, y), lengthPX(radius), lengthPX(radius), 0, 360, true));
     afterDraw();
 }
@@ -1178,7 +1352,7 @@ void ellipse(double x, double y, double halfWidth, double halfHeight) {
     checkFinite("ellipse", {x, y, halfWidth, halfHeight});
     checkNonNegative("ellipse", "halfWidth", halfWidth);
     checkNonNegative("ellipse", "halfHeight", halfHeight);
-    beginDraw();
+    beginDraw("ellipse", x, y);
     strokePX(ellipsePX(toPixel(x, y), lengthPX(halfWidth), lengthPY(halfHeight), 0, 360, true),
              true, penWidthPX());
     afterDraw();
@@ -1188,7 +1362,7 @@ void filledEllipse(double x, double y, double halfWidth, double halfHeight) {
     checkFinite("filledEllipse", {x, y, halfWidth, halfHeight});
     checkNonNegative("filledEllipse", "halfWidth", halfWidth);
     checkNonNegative("filledEllipse", "halfHeight", halfHeight);
-    beginDraw();
+    beginDraw("filledEllipse", x, y);
     fillPolygonPX(ellipsePX(toPixel(x, y), lengthPX(halfWidth), lengthPY(halfHeight), 0, 360, true));
     afterDraw();
 }
@@ -1197,7 +1371,7 @@ void arc(double x, double y, double radius, double angle1, double angle2) {
     checkFinite("arc", {x, y, radius, angle1, angle2});
     checkNonNegative("arc", "radius", radius);
     while (angle2 < angle1) angle2 += 360;
-    beginDraw();
+    beginDraw("arc", x, y);
     strokePX(ellipsePX(toPixel(x, y), lengthPX(radius), lengthPX(radius), angle1, angle2, false),
              false, penWidthPX());
     afterDraw();
@@ -1206,7 +1380,7 @@ void arc(double x, double y, double radius, double angle1, double angle2) {
 void square(double x, double y, double halfLength) {
     checkFinite("square", {x, y, halfLength});
     checkNonNegative("square", "halfLength", halfLength);
-    beginDraw();
+    beginDraw("square", x, y);
     strokePX(squarePX(x, y, lengthPX(halfLength)), true, penWidthPX());
     afterDraw();
 }
@@ -1214,7 +1388,7 @@ void square(double x, double y, double halfLength) {
 void filledSquare(double x, double y, double halfLength) {
     checkFinite("filledSquare", {x, y, halfLength});
     checkNonNegative("filledSquare", "halfLength", halfLength);
-    beginDraw();
+    beginDraw("filledSquare", x, y);
     fillPolygonPX(squarePX(x, y, lengthPX(halfLength)));
     afterDraw();
 }
@@ -1223,7 +1397,7 @@ void rectangle(double x, double y, double halfWidth, double halfHeight) {
     checkFinite("rectangle", {x, y, halfWidth, halfHeight});
     checkNonNegative("rectangle", "halfWidth", halfWidth);
     checkNonNegative("rectangle", "halfHeight", halfHeight);
-    beginDraw();
+    beginDraw("rectangle", x, y);
     strokePX(rectanglePX(x, y, halfWidth, halfHeight), true, penWidthPX());
     afterDraw();
 }
@@ -1232,21 +1406,21 @@ void filledRectangle(double x, double y, double halfWidth, double halfHeight) {
     checkFinite("filledRectangle", {x, y, halfWidth, halfHeight});
     checkNonNegative("filledRectangle", "halfWidth", halfWidth);
     checkNonNegative("filledRectangle", "halfHeight", halfHeight);
-    beginDraw();
+    beginDraw("filledRectangle", x, y);
     fillPolygonPX(rectanglePX(x, y, halfWidth, halfHeight));
     afterDraw();
 }
 
 void polygon(const std::vector<Point>& vertices) {
     checkPoints("polygon", vertices);
-    beginDraw();
+    beginDraw("polygon", vertices);
     strokePX(pointsPX(vertices), true, penWidthPX());
     afterDraw();
 }
 
 void filledPolygon(const std::vector<Point>& vertices) {
     checkPoints("filledPolygon", vertices);
-    beginDraw();
+    beginDraw("filledPolygon", vertices);
     fillPolygonPX(pointsPX(vertices));
     afterDraw();
 }
@@ -1261,7 +1435,7 @@ void filledPolygon(const std::vector<double>& x, const std::vector<double>& y) {
 
 void polyline(const std::vector<Point>& points) {
     checkPoints("polyline", points);
-    beginDraw();
+    beginDraw("polyline", points);
     strokePX(pointsPX(points), false, penWidthPX());
     afterDraw();
 }
@@ -1284,28 +1458,28 @@ std::string detail::numberToText(double value) {
 
 void text(double x, double y, const std::string& s) {
     checkFinite("text", {x, y});
-    beginDraw();
+    beginDraw("text", x, y);
     drawText(x, y, s, 0.5, 0);
     afterDraw();
 }
 
 void textLeft(double x, double y, const std::string& s) {
     checkFinite("textLeft", {x, y});
-    beginDraw();
+    beginDraw("textLeft", x, y);
     drawText(x, y, s, 0, 0);
     afterDraw();
 }
 
 void textRight(double x, double y, const std::string& s) {
     checkFinite("textRight", {x, y});
-    beginDraw();
+    beginDraw("textRight", x, y);
     drawText(x, y, s, 1, 0);
     afterDraw();
 }
 
 void text(double x, double y, const std::string& s, double degrees) {
     checkFinite("text", {x, y, degrees});
-    beginDraw();
+    beginDraw("text", x, y);
     drawText(x, y, s, 0.5, std::fmod(degrees, 360.0));
     afterDraw();
 }
@@ -1313,7 +1487,7 @@ void text(double x, double y, const std::string& s, double degrees) {
 void picture(double x, double y, const image::Image& img) {
     checkFinite("picture", {x, y});
     canvas_internal::checkImage(img, "canvas", "picture");
-    beginDraw();
+    beginDraw("picture", x, y, false);
     drawImagePX(img, toPX(x), toPY(y), img.width * st().scale, img.height * st().scale);
     afterDraw();
 }
@@ -1323,7 +1497,7 @@ void picture(double x, double y, const image::Image& img, double width, double h
     checkNonNegative("picture", "width", width);
     checkNonNegative("picture", "height", height);
     canvas_internal::checkImage(img, "canvas", "picture");
-    beginDraw();
+    beginDraw("picture", x, y, false);
     drawImagePX(img, toPX(x), toPY(y), lengthPX(width), lengthPY(height));
     afterDraw();
 }
@@ -1343,6 +1517,7 @@ void clear() { clear(WHITE); }
 void clear(Color color) {
     beginDraw();
     State& s = st();
+    s.background = color;
     // Fill the first row, then copy it to the others.
     const std::size_t rowBytes = static_cast<std::size_t>(s.pw) * 4;
     for (std::size_t i = 0; i < rowBytes; i += 4) {
@@ -1376,6 +1551,18 @@ void setFrameRate(double framesPerSecond) {
     State& s = st();
     s.frameInterval = framesPerSecond > 0 ? static_cast<Uint64>(std::llround(1e9 / framesPerSecond)) : 0;
     s.hasFrame = false;
+}
+
+void setHints(bool on) { st().hints = on; }
+
+void showMouseCoordinates(bool on) {
+    st().showCoordinates = on;
+    updateTitle();
+}
+
+void setDrawDelay(int ms) {
+    checkNonNegative("setDrawDelay", "ms", ms);
+    st().drawDelay = ms;
 }
 
 void show() {
