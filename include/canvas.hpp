@@ -12,7 +12,10 @@
 //     }
 //
 // The window opens on the first drawing call and stays open after main()
-// returns, until the user closes it. Closing the window ends the program.
+// returns, until the user closes it. Closing the window ends the program at
+// once, inside whichever canvas function it was in, so local variables are
+// not cleaned up: flush a std::ofstream the program is still writing
+// (file.flush()) so its last lines aren't lost.
 //
 // Coordinates: by default (0, 0) is the lower-left corner and (1, 1) the
 // upper-right corner, with y pointing up. Change this with setXscale(),

@@ -21,6 +21,32 @@ int main() {
 
 The header [`include/canvas.hpp`](../include/canvas.hpp) documents every function.
 
+## Closing the window
+
+Closing the window ends the program at once, from inside whichever canvas
+function it was in, such as `show()` or `pause()`, as in StdDraw. That is
+what makes an endless animation loop stop. Output to `std::cout`, including
+`output::toFile`, and a recording are still saved.
+
+The program doesn't return from `main`, though, so its local variables are
+not cleaned up. That matters for a file the program writes with
+`std::ofstream`: the last things written may still be waiting in the stream
+and are lost. If a program writes a file while its window is open, flush it
+after writing:
+
+```cpp
+std::ofstream log("scores.txt");
+while (true) {
+    // ...
+    log << score << "\n";
+    log.flush();          // on disk now, even if the window is closed next
+    canvas::show();
+}
+```
+
+A file written and closed before the animation starts, or after it ends, is
+safe.
+
 ## Coordinates
 
 By default the canvas is 512 × 512 pixels, with (0, 0) at the lower left and
