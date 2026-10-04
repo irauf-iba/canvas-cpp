@@ -65,6 +65,22 @@ void canvasCenter(double& x, double& y);
 // at logical size. For tests; snapshot() never includes the overlay.
 image::Image screenImage();
 
+// --- recording.cpp ----------------------------------------------------------------
+
+// Recording the canvas as a GIF. recordingStart() checks the file name and
+// stops with an error naming startRecording. Each frame is given with the
+// time, in seconds since the recording started, at which it appears; frames
+// that don't change the picture are merged. The recording ends by itself
+// after 60 seconds.
+bool recordingActive();
+void recordingStart(const std::string& filename);
+void recordingFrame(const image::Image& frame, double seconds);
+
+// Ends the recording with the last frame and writes the file. If writing
+// fails, stops with an error (canFail) or, while the program is exiting,
+// prints the problem.
+void recordingFinish(const image::Image& last, double seconds, bool canFail);
+
 }  // namespace canvas_internal
 
 #endif  // CANVAS_INTERNAL_HPP

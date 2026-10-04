@@ -32,6 +32,28 @@ constexpr Color rgb(int r, int g, int b, int a = 255) {
     return Color{clamp(r), clamp(g), clamp(b), clamp(a)};
 }
 
+// A shade of gray, from 0 (black) to 255 (white). Values outside are clamped.
+constexpr Color gray(int level) { return rgb(level, level, level); }
+
+// A color from its hue, saturation and value (brightness), which is easier
+// than red, green and blue for rainbows and gradients:
+//     hue: an angle on the color wheel in degrees: 0 red, 60 yellow,
+//          120 green, 180 cyan, 240 blue, 300 magenta, and 360 red again
+//          (any angle works; 400 is the same as 40);
+//     saturation: 0 (gray) to 1 (pure color);
+//     value: 0 (black) to 1 (full brightness).
+// Saturation and value outside 0 to 1 are clamped.
+//     for (int i = 0; i < 360; ++i) {
+//         canvas::setPenColor(canvas::hsv(i, 1, 1));   // a rainbow
+//         ...
+//     }
+Color hsv(double hue, double saturation, double value);
+
+// A mix of two colors: t = 0 gives a, t = 1 gives b, t = 0.5 halfway between
+// (alpha too). t outside 0 to 1 is clamped. For gradients and fading:
+//     canvas::mix(canvas::BLUE, canvas::WHITE, 0.25)   // a lighter blue
+Color mix(Color a, Color b, double t);
+
 constexpr Color BLACK      {  0,   0,   0};
 constexpr Color WHITE      {255, 255, 255};
 constexpr Color GRAY       {128, 128, 128};
@@ -59,6 +81,9 @@ namespace image {
 
 using canvas::Color;
 using canvas::rgb;
+using canvas::gray;
+using canvas::hsv;
+using canvas::mix;
 using canvas::operator==;
 using canvas::operator!=;
 

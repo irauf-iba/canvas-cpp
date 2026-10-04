@@ -12,6 +12,7 @@
 #include <string>
 
 #include "check.hpp"
+#include "internal.hpp"  // screenImage(), for the grid key
 
 namespace {
 
@@ -46,6 +47,30 @@ void press(SDL_Keycode key, bool repeat = false) {
     e.key.down = true;
     e.key.repeat = repeat;
     SDL_PushEvent(&e);
+}
+
+void move(float fx, float fy) {
+    int w, h;
+    SDL_GetWindowSize(window(), &w, &h);
+    SDL_Event e{};
+    e.type = SDL_EVENT_MOUSE_MOTION;
+    e.motion.windowID = SDL_GetWindowID(window());
+    e.motion.x = fx * static_cast<float>(w);
+    e.motion.y = fy * static_cast<float>(h);
+    SDL_PushEvent(&e);
+}
+
+// For SDL_AddTimer: presses the key, from the timer's thread, while the
+// program waits in show() or pause().
+SDL_WindowID gWindowID = 0;
+Uint32 SDLCALL pressLater(void* key, SDL_TimerID, Uint32) {
+    SDL_Event e{};
+    e.type = SDL_EVENT_KEY_DOWN;
+    e.key.windowID = gWindowID;
+    e.key.key = *static_cast<const SDL_Keycode*>(key);
+    e.key.down = true;
+    SDL_PushEvent(&e);
+    return 0;
 }
 
 std::string readTyped() {
@@ -235,6 +260,67 @@ void testDrawDelay() {
     CHECK(elapsedMs(start) < 50);  // off again
 }
 
+void testIsMouseOver() {
+    newFrame();
+    move(0.75f, 0.25f);  // (0.5, 0.5) with the scale -1..1
+    CHECK(canvas::isMouseOver(0.5, 0.5, 0.1, 0.1));
+    CHECK(canvas::isMouseOver(0.4, 0.45, 0.1, 0.05));  // on the edges counts
+    CHECK(!canvas::isMouseOver(0, 0, 0.1, 0.1));
+    CHECK(!canvas::isMouseOver(0.5, 0.7, 0.3, 0.1));
+}
+
+bool samePixels(const image::Image& a, const image::Image& b) { return a.pixels == b.pixels; }
+
+void testDebugKeys() {
+    static const SDL_Keycode keyN = SDLK_N, keyP = SDLK_P;
+    gWindowID = SDL_GetWindowID(window());
+    canvas::setTitle("Test");
+    canvas::enableDebugKeys();
+    newFrame();
+
+    // P, and the 'p' it types, go to the debug keys, not to the program.
+    press(SDLK_P);
+    type("p");
+    CHECK(!canvas::wasKeyPressed(canvas::Key::P));
+    CHECK(!canvas::hasNextKeyTyped());
+    CHECK(std::string(SDL_GetWindowTitle(window())).find("paused") != std::string::npos);
+
+    // Paused at the next frame, until N runs one more frame ...
+    SDL_AddTimer(200, pressLater, const_cast<SDL_Keycode*>(&keyN));
+    Uint64 start = SDL_GetTicksNS();
+    canvas::show();
+    double ms = elapsedMs(start);
+    std::printf("paused show() waited %.0f ms for N\n", ms);
+    CHECK(ms > 180);
+
+    // ... after which it pauses again, until P resumes.
+    SDL_AddTimer(200, pressLater, const_cast<SDL_Keycode*>(&keyP));
+    start = SDL_GetTicksNS();
+    canvas::pause(0);
+    ms = elapsedMs(start);
+    std::printf("after one step, pause(0) waited %.0f ms for P\n", ms);
+    CHECK(ms > 180);
+    CHECK(std::string(SDL_GetWindowTitle(window())) == "Test");
+    start = SDL_GetTicksNS();
+    canvas::show();
+    CHECK(elapsedMs(start) < 100);  // running again
+
+    // G shows and hides the grid, over the canvas but not in it.
+    newFrame();
+    press(SDLK_G);
+    CHECK(!canvas::wasKeyPressed(canvas::Key::G));
+    CHECK(!samePixels(canvas_internal::screenImage(), canvas::snapshot()));
+    press(SDLK_G);
+    CHECK(!canvas::wasKeyPressed(canvas::Key::G));
+    CHECK(samePixels(canvas_internal::screenImage(), canvas::snapshot()));
+
+    // Turned off, P goes to the program again.
+    canvas::disableDebugKeys();
+    newFrame();
+    press(SDLK_P);
+    CHECK(canvas::wasKeyPressed(canvas::Key::P));
+}
+
 void testPauseAfterGap() {
     // A one-off pause after a long gap waits the full time.
     canvas::pause(0);
@@ -265,6 +351,8 @@ int main() {
     testFrameRate();
     testMouseCoordinatesInTitle();
     testDrawDelay();
+    testIsMouseOver();
+    testDebugKeys();
     testPauseAfterGap();
 
     // Close the window so the program can end instead of waiting for the user.

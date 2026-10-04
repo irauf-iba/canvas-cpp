@@ -55,6 +55,27 @@ void play(const std::vector<double>& samples);
 void drain();
 
 // ---------------------------------------------------------------------------
+// Making sounds
+//
+// These return samples, to play() now, playInBackground() in a game, save(),
+// or join into a tune:
+//     audio::play(audio::note(0, 0.5));                // A4 for half a second
+//     audio::playInBackground(audio::tone(880, 0.1));  // a short beep
+// ---------------------------------------------------------------------------
+
+// A pure tone (a sine wave) with the frequency in hertz, lasting the given
+// seconds, at a volume from 0 to 1 (default 0.5). It fades in and out over
+// 5 milliseconds, so it starts and ends without a click.
+std::vector<double> tone(double hz, double seconds, double volume = 0.5);
+
+// A musical note, pitch semitones above A4 (440 Hz), or below if negative:
+// 0 is A4, 3 is C5, 12 is A5 and -9 is middle C. Otherwise like tone().
+std::vector<double> note(int pitch, double seconds, double volume = 0.5);
+
+// Silence lasting the given seconds, e.g. a rest between notes.
+std::vector<double> silence(double seconds);
+
+// ---------------------------------------------------------------------------
 // Sound files
 // ---------------------------------------------------------------------------
 

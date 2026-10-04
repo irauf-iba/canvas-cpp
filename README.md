@@ -1,6 +1,6 @@
 # canvas
 
-A small library for introductory C++ courses, for drawing, turtle graphics, images, sound, random numbers, statistics and reading input, inspired
+A small library for introductory C++ courses, for drawing, turtle graphics, images, sound, random numbers, statistics, timing and reading input, inspired
 by Princeton's [standard libraries](https://introcs.cs.princeton.edu/java/stdlib/).
 
 | Module | For | Like Princeton's | Guide |
@@ -11,6 +11,7 @@ by Princeton's [standard libraries](https://introcs.cs.princeton.edu/java/stdlib
 | `audio` | Sound as samples, sound files, background sound | StdAudio | [docs/audio.md](docs/audio.md) |
 | `chance` | Random numbers, the same on every computer for a given seed | StdRandom | [docs/chance.md](docs/chance.md) |
 | `stats` | Mean, median, standard deviation and more of a list of numbers; quick plots | StdStats | [docs/stats.md](docs/stats.md) |
+| `stopwatch` | Timing code, e.g. for the running time of algorithms | Stopwatch | [docs/stopwatch.md](docs/stopwatch.md) |
 | `input`, `output` | Help with `std::cin`: checked questions, reading all values, Windows line endings; files in an IDE | StdIn, StdOut | [docs/input.md](docs/input.md) |
 
 **Examples:** [`examples/`](examples) has a small program for most features,
@@ -34,7 +35,7 @@ int main() {
 ```
 
 - **Only functions.** Everything is a free function in `namespace canvas`,
-  `turtle`, `image`, `audio`, `chance`, `stats`, `input` or `output`. There are no classes to construct and no objects to
+  `turtle`, `image`, `audio`, `chance`, `stats`, `stopwatch`, `input` or `output`. There are no classes to construct and no objects to
   manage.
 - **Nothing to set up.** The window opens on the first drawing call, and the
   sound device on the first sound.
@@ -45,8 +46,11 @@ int main() {
   mistakes that aren't errors, such as drawing outside the canvas, give a
   hint instead.
 - **Help with debugging.** The window can show a coordinate grid, the mouse
-  position and live values of variables, and slow motion shows the order in
-  which things are drawn.
+  position and live values of variables, slow motion shows the order in
+  which things are drawn, and debug keys pause an animation and step through
+  it frame by frame.
+- **Animations to share.** `canvas::startRecording("game.gif")` records the
+  canvas as an animated GIF, at the intended speed, also headless.
 - **Ready for autograding.** Drawing is done in software, so output is the same
   everywhere. Programs can run without a window (`CANVAS_HEADLESS=1`), their
   sound can be captured to a file (`CANVAS_AUDIO_CAPTURE=out.wav`), and their
@@ -117,18 +121,22 @@ The tests need no display or speakers:
 |---|---|
 | `header` | Each public header compiles on its own with strict warnings as errors. |
 | `render.*` | Snapshot tests: each scene is compared with `tests/reference/<scene>.png`, allowing small differences. On failure, `<scene>-diff.png` in the build's `tests` folder marks the differing pixels in red. |
-| `image` | Creating, changing, saving and loading images; `canvas::snapshot()` and `canvas::picture()` with an image. |
+| `image` | Creating, changing, saving and loading images; flipping, rotating (exactly for quarter turns), resizing and cropping; `canvas::snapshot()` and `canvas::picture()` with an image; plus the `render.transforms` snapshot. |
 | `text` | `text()` with numbers and characters: formatting and choice of overload. |
 | `overlay` | The grid and watched values appear on the screen but never in `snapshot()`; updating and removing values. |
+| `color` | `gray`, `hsv` (the corners of the color wheel, any angle, clamping) and `mix`, in both namespaces; plus the `render.colors` snapshot. |
+| `game` | `distance` and the overlap checks, including touching shapes, rounded rectangle corners and different x and y scales. |
+| `recording.*` | GIF frame timing from the frame rate, `pause()` and slow motion; merging unchanged frames; the 60-second limit; saving when the program ends. |
+| `stopwatch` | Elapsed time, restarting, and timing without `start()`. |
 | `hints.*` | Each hint appears once for its mistake, and not for look-alikes (zero-size or partly visible shapes, white on colour, pictures); `setHints(false)` and `CANVAS_HINTS=0` turn them off. |
 | `turtle` | Turtle positions and headings (including wrapping past 360°), the pen, and a square closing exactly; plus the `render.turtle` snapshot. |
 | `reading`, `reading.stdin`, `ask*`, `output` | `fromFile` with plain `std::cin` (Windows line endings, byte-order mark), `skipRestOfLine`, `skipEmptyLines`, `getLine` and `readAll…` on files and real standard input, the exact prompts and messages of the `ask…` functions, the string helpers, and `output::toFile`. |
 | `stats` | Sums, extremes, averages and spread, for doubles, ints and lists in braces (with large values close together); where the plots draw; plus the `render.stats` snapshot. |
 | `chance`, `chance.*` | The same numbers for a seed (pinned values, checked on every platform), ranges, distributions, shuffling, and `CANVAS_SEED`. |
 | `lookup` | Files are found next to the program when the current folder is elsewhere. |
-| `input` | Clicks, typed keys and `wasKeyPressed` (injected as SDL events), per-frame input rules, `pause()` and frame-rate timing, the title readout, slow motion. |
-| `window.*` | The window stays open after `main()` returns, and closing it ends the program. |
-| `audio` | Sound files, mixing down, sample-rate conversion, clipping and capture, without a device. |
+| `input` | Clicks, typed keys and `wasKeyPressed` (injected as SDL events), per-frame input rules, `pause()` and frame-rate timing, the title readout, slow motion, `isMouseOver`, and the debug keys (pausing, stepping, the grid, and keeping P, N and G from the program). |
+| `window.*` | The window stays open after `main()` returns, closing it ends the program, and closing it during a recording saves the GIF. |
+| `audio` | Sound files, mixing down, sample-rate conversion, clipping and capture, without a device; the length, pitch, volume and fades of `tone`, `note` and `silence`. |
 | `audio.*` | Real-time playback, background sounds, sound at program exit, and closing the window while that sound finishes, with the `dummy` driver; mixing in the device output, with the `disk` driver. |
 | `error.*` | Each mistake stops the program with the expected message. |
 | `textbook.*` | Each textbook example runs headless (with its data file on standard input where it reads one). |
@@ -183,6 +191,7 @@ include/image.hpp      images as pixel grids
 include/audio.hpp      sound
 include/chance.hpp     random numbers
 include/stats.hpp      statistics and quick plots
+include/stopwatch.hpp  timing code
 include/input.hpp      helpers for std::cin (and output.hpp: std::cout to a file)
 include/color.hpp      Color and the predefined colors (shared)
 src/canvas.cpp         canvas implementation (SDL, rasterizer, text)
@@ -191,19 +200,23 @@ src/image.cpp          image implementation and image file I/O
 src/audio.cpp          audio implementation (SDL audio, sound files)
 src/chance.cpp         chance implementation
 src/stats.cpp          stats implementation (plots draw with canvas)
+src/stopwatch.cpp      stopwatch implementation
+src/color.cpp          hsv() and mix()
+src/recording.cpp      GIF recording of the canvas (msf_gif)
 src/input.cpp          input and output implementation
 src/common.cpp         error handling, file lookup and other shared helpers
 src/font_data.inc      built-in font (generated by tools/make_font.sh)
 docs/                  getting started, and a guide to each module
 template/              starter project for students
 examples/              shapes, bouncing_ball, sketch, image_effects, scale, piano, random_walk,
-                       average, grades, guess, koch, tree (data files in examples/data/)
+                       average, grades, guess, koch, tree, paddle (data files in examples/data/)
 examples/textbook/     classic programs from the Princeton textbook, with their data
 tests/                 tests, reference images and benchmark
 tests/data/            small sound files for the audio tests
 tests/manual/          real-input test (xdotool) and speaker test (parecord)
 third_party/stb/       stb_truetype, stb_image, stb_image_write
 third_party/dr_libs/   dr_wav 0.14.5, dr_mp3 0.7.3
+third_party/msf_gif/   msf_gif 2.4, the GIF encoder for recordings
 third_party/font/      Noto Sans subset and its license
 .github/workflows/     CI: build and test on Linux, Windows and macOS
 ```
@@ -228,6 +241,7 @@ Limitations of individual modules are listed in their guides.
 - [SDL](https://libsdl.org): zlib license.
 - [stb](https://github.com/nothings/stb): public domain or MIT.
 - [dr_libs](https://github.com/mackron/dr_libs) (dr_wav, dr_mp3): public domain or MIT-0.
+- [msf_gif](https://github.com/notnullnotvoid/msf_gif): public domain or MIT.
 - Noto Sans: SIL Open Font License 1.1 (`third_party/font/OFL.txt`).
 - Example data in `examples/textbook/data/`: world cities from
   [Natural Earth](https://www.naturalearthdata.com) (public domain); places

@@ -88,6 +88,28 @@ variables. Colors can be compared with `==`. The predefined colors are:
 textbook's `BOOK_BLUE`, `BOOK_LIGHT_BLUE` and `BOOK_RED`. The `image` module
 uses the same colors.
 
+**Making colors.** Three functions make colors that are awkward to give as red,
+green and blue:
+
+| Function | Gives |
+|---|---|
+| `gray(level)` | A gray from 0 (black) to 255 (white). |
+| `hsv(hue, saturation, value)` | A color from its hue, an angle on the color wheel in degrees (0 red, 60 yellow, 120 green, 180 cyan, 240 blue, 300 magenta), its saturation from 0 (gray) to 1 (pure), and its value from 0 (black) to 1 (bright). |
+| `mix(a, b, t)` | A mix of colors `a` and `b`: `t = 0` gives `a`, `t = 1` gives `b`, and values between blend them. |
+
+```cpp
+for (int i = 0; i < 360; ++i) {           // a rainbow
+    canvas::setPenColor(canvas::hsv(i, 1, 1));
+    canvas::filledRectangle(i / 360.0, 0.5, 0.002, 0.2);
+}
+canvas::setPenColor(canvas::mix(canvas::BOOK_BLUE, canvas::WHITE, 0.5));   // a paler blue
+```
+
+Hue is the natural choice for colors that cycle, such as a color for each level
+of a fractal, and `mix` for gradients and fades.
+
+![A rainbow from hsv, gradients from mix and steps of gray](../tests/reference/colors.png)
+
 ### Shapes
 
 Shapes are positioned by their center. Outline shapes use the pen width, and
@@ -137,6 +159,7 @@ with a font that has them.
 | `picture(x, y, file)` | Draws a .png, .jpg, .bmp or .gif file centered at (x, y), at its natural size. |
 | `picture(x, y, file, width, height)` | The same, scaled to a width and height in user coordinates. |
 | `picture(x, y, img)`, `picture(x, y, img, width, height)` | The same for an `image::Image` (see [image.md](image.md)). At natural size each image pixel covers exactly one canvas pixel. |
+| `picture(x, y, file, degrees)`, `picture(x, y, file, width, height, degrees)` | Turned counterclockwise by `degrees` around (x, y), e.g. a sprite facing the way it moves. Also for an `image::Image`. |
 | `save(file)` | Saves the canvas as .png, .jpg or .bmp, at the size set by `setCanvasSize`. |
 | `snapshot()` | A copy of the canvas as an `image::Image`, to read or process its pixels. |
 
@@ -180,6 +203,39 @@ while (true) {
   message for two seconds. In a loop with a frame rate, don't also call
   `pause()`: each frame would wait twice. (Without a frame rate, a StdDraw-style
   `show(); pause(16);` loop works too.)
+
+### Recording an animation
+
+```cpp
+canvas::startRecording("game.gif");
+```
+
+This records the canvas as an animated GIF, to share or to hand in. Every
+frame (each `show()` or `pause()`) is recorded, and `stopRecording()` saves
+the file. If the program doesn't call it, the file is saved when the program
+ends, including when the window is closed, so a game loop that never ends can
+still be recorded. The terminal says where the file went:
+
+```
+canvas: saved the recording 'game.gif' (12.4 seconds, 620 frames)
+```
+
+- **The recording keeps the intended speed.** Frame times come from the frame
+  rate and from `pause()`, not from the clock, so a recording made on a slow
+  computer, or headless, plays at the speed the animation is meant to run.
+  Without either, frames are timed as they appear (a sixtieth of a second
+  each when headless).
+- **Frames that don't change** are merged into one longer frame, and the
+  final picture stays for a second before the GIF starts again.
+- **In slow motion** (`setDrawDelay`), each drawing call is a frame, which
+  makes a GIF of a fractal being drawn.
+- **Size and speed.** Recording takes about a millisecond per frame. A busy
+  512 × 512 animation makes about 0.4 MB of GIF per second.
+- **Limits.** A recording stops by itself after 60 seconds. GIF frames are at
+  least a fiftieth of a second, so at 60 frames per second some frames are
+  left out (the timing stays right). Colors are reduced to the GIF's palette,
+  and smooth gradients may look slightly grainy. The grid and watched values
+  are not recorded, as with `save()`.
 
 ### Mouse and keyboard
 
@@ -228,6 +284,37 @@ if (canvas::isKeyPressed(canvas::Key::Space)) speed = 2;                        
 
 Input queries are cheap, about 50 ns, so a program can check the keyboard very
 often, for example once per audio sample.
+
+### Game helpers
+
+Collisions and buttons come up in every game, and are easy to get subtly
+wrong. Positions and sizes are as for drawing: a circle has a centre and a
+radius, as in `filledCircle`, and a rectangle a centre, half width and half
+height, as in `filledRectangle`.
+
+| Function | Does |
+|---|---|
+| `distance(x0, y0, x1, y1)` | The distance between two points. |
+| `circlesOverlap(x0, y0, r0, x1, y1, r1)` | True if the circles overlap. |
+| `rectanglesOverlap(x0, y0, halfWidth0, halfHeight0, x1, y1, halfWidth1, halfHeight1)` | True if the rectangles overlap. |
+| `circleOverlapsRectangle(cx, cy, radius, x, y, halfWidth, halfHeight)` | True if the circle and the rectangle overlap, e.g. a ball and a paddle. |
+| `isMouseOver(x, y, halfWidth, halfHeight)` | True if the mouse is over the rectangle, e.g. a button. |
+
+Shapes that just touch count as overlapping. For a circle and a rectangle the
+rounded corners are taken into account: a ball near a corner doesn't collide
+until it really touches.
+
+```cpp
+if (canvas::circleOverlapsRectangle(ballX, ballY, radius, padX, padY, 0.1, 0.015)) {
+    ballVY = -ballVY;                                          // bounce off the paddle
+}
+if (canvas::mouseClicked() && canvas::isMouseOver(0.5, 0.2, 0.1, 0.05)) startGame();
+```
+
+When the x and y scales differ, circles are drawn round on the screen, so in
+user coordinates they are not circles. The circle checks use the circles as
+drawn, so they match what the player sees; `distance` is the plain distance
+in user coordinates.
 
 ## Debugging aids
 
@@ -308,6 +395,28 @@ or `examples/koch.cpp`). While it is on, double buffering is ignored, so each
 step is visible. `setDrawDelay(0)` turns it off; in headless mode it never
 waits.
 
+### Debug keys
+
+```cpp
+canvas::enableDebugKeys();
+```
+
+turns on three keys for looking at an animation while it runs:
+
+| Key | Does |
+|---|---|
+| P | Pauses at the next frame (`show()` or `pause()`), and resumes. |
+| N | While paused, runs one more frame and pauses again. |
+| G | Shows or hides the grid. |
+
+While paused, the window title says so, and the grid, the mouse coordinates
+in the title and the watched values still work, so you can look at the frame
+closely. In slow motion, N runs one drawing call at a time.
+
+The keys are off unless turned on, and while they are on the program doesn't
+receive P, N and G, so they don't clash with the program's own keys. If a
+game needs those letters, turn the debug keys off with `disableDebugKeys()`.
+
 ## Headless mode
 
 If the environment variable `CANVAS_HEADLESS` is set to 1, no window is opened.
@@ -320,7 +429,8 @@ CANVAS_HEADLESS=1 ./student_program && compare out.png expected.png
 ```
 
 `save()` always writes the size set by `setCanvasSize`, even on high-DPI
-screens, so output is the same on every machine.
+screens, so output is the same on every machine. Recording works headless too,
+at the intended speed, so animations can be graded from their GIF.
 
 ## Errors
 
@@ -332,6 +442,7 @@ canvas: circle: an argument is NaN or infinite
 canvas: picture: cannot open 'cat.png' (not in the current folder, /home/ana/game/build/)
 canvas: polygon: x and y must have the same size
 canvas: nextKeyTyped: no key was typed (check hasNextKeyTyped() first)
+canvas: startRecording: 'game.mp4' must end in .gif
 ```
 
 ## Differences from Java's StdDraw
@@ -350,6 +461,9 @@ canvas: nextKeyTyped: no key was typed (check hasNextKeyTyped() first)
 | Circles and squares stretch when the x and y scales differ | Always round and square; size in x units | A circle should look like a circle, and plot markers stay dots. |
 | `pause(ms)` sleeps | `pause(ms)` keeps a steady frame rate | Smooth animation even when drawing takes time. |
 | `show(); pause(16);` in every loop | `setFrameRate(60)` once | Says what is meant, and runs at the same speed on every screen. |
+| — | `hsv`, `mix`, `gray` | Rainbows, gradients and grays without computing red, green and blue. |
+| — | `startRecording("game.gif")` | Students can share and hand in animations. |
+| — | Overlap checks, `isMouseOver` | Collisions and buttons without the usual mistakes. |
 | Exceptions | Message and exit | Clearer for beginners than an uncaught exception. |
 
 ## How it works
@@ -366,6 +480,9 @@ canvas: nextKeyTyped: no key was typed (check hasNextKeyTyped() first)
   times a second. On high-DPI screens the canvas has more pixels than its
   logical size, so drawing stays sharp.
 - **Text** uses stb_truetype, with the built-in font embedded in the library.
+- **Recording** encodes each frame as it arrives, with
+  [msf_gif](https://github.com/notnullnotvoid/msf_gif), so memory holds only
+  the compressed GIF, not every frame.
 - **Speed.** The library is compiled with optimization even when the student's
   project builds in Debug. A thousand small filled circles take about 1.5 ms.
 
@@ -376,3 +493,6 @@ canvas: nextKeyTyped: no key was typed (check hasNextKeyTyped() first)
   double-buffered animation loop.
 - [`examples/sketch.cpp`](../examples/sketch.cpp): drawing with the mouse,
   keys to change color, clear and save.
+- [`examples/paddle.cpp`](../examples/paddle.cpp): a paddle game with a start
+  button, collisions, sound effects, colors from `hsv` and the debug keys;
+  `./paddle record` also records it to a GIF.

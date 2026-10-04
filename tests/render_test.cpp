@@ -291,6 +291,66 @@ void overlayScene() {
     canvas::watch("state", "jumping");
 }
 
+void colorsScene() {
+    // A rainbow from hsv(), gradients from mix(), and steps of gray().
+    canvas::setCanvasSize(360, 200);
+    canvas::setXscale(0, 360);
+    canvas::setYscale(0, 200);
+    for (int hue = 0; hue < 360; ++hue) {
+        canvas::setPenColor(canvas::hsv(hue, 1, 1));
+        canvas::filledRectangle(hue + 0.5, 170, 0.5, 30);
+        canvas::setPenColor(canvas::hsv(hue, 0.4, 0.8));  // paler and darker
+        canvas::filledRectangle(hue + 0.5, 125, 0.5, 15);
+    }
+    for (int x = 0; x < 360; ++x) {
+        canvas::setPenColor(canvas::mix(canvas::BOOK_BLUE, canvas::YELLOW, x / 359.0));
+        canvas::filledRectangle(x + 0.5, 85, 0.5, 15);
+    }
+    canvas::setPenWidth(1);
+    for (int i = 0; i < 9; ++i) {
+        canvas::setPenColor(canvas::gray(i * 32));  // the last one, 256, is clamped to white
+        canvas::filledSquare(20 + i * 40, 30, 18);
+        canvas::setPenColor(canvas::BLACK);
+        canvas::square(20 + i * 40, 30, 18);
+    }
+}
+
+// A small picture that shows which way it is turned: an F in three colours
+// on a transparent background.
+image::Image letterF() {
+    image::Image img = image::create(24, 32, canvas::rgb(0, 0, 0, 0));
+    for (int row = 0; row < 32; ++row) {
+        for (int col = 0; col < 24; ++col) {
+            if (col < 6) img[row][col] = canvas::BOOK_RED;                       // the stem
+            else if (row < 6) img[row][col] = canvas::BOOK_BLUE;                 // the top bar
+            else if (row >= 13 && row < 19 && col < 18) img[row][col] = canvas::rgb(40, 160, 60);  // the middle bar
+        }
+    }
+    return img;
+}
+
+void transformsScene() {
+    // Top row: the image functions. Bottom row: pictures turned by canvas.
+    canvas::setCanvasSize(400, 200);
+    canvas::setXscale(0, 400);
+    canvas::setYscale(0, 200);
+    canvas::clear(canvas::LIGHT_GRAY);
+    const image::Image f = letterF();
+    canvas::picture(25, 150, f);
+    canvas::picture(70, 150, image::flipHorizontal(f));
+    canvas::picture(115, 150, image::flipVertical(f));
+    canvas::picture(165, 150, image::rotate(f, 90));
+    canvas::picture(225, 150, image::rotate(f, 30));
+    canvas::picture(295, 150, image::resize(f, 48, 64));
+    canvas::picture(360, 150, image::crop(f, 0, 0, 24, 19));
+    canvas::picture(40, 50, f, 45);
+    canvas::picture(110, 50, f, -30);
+    canvas::picture(190, 50, f, 48, 64, 180);
+    canvas::picture(270, 50, f, 24, 64, 60);   // stretched, then turned
+    canvas::setYscale(200, 0);                 // y down: still counterclockwise on the screen
+    canvas::picture(350, 150, f, 45);
+}
+
 void statsScene() {
     // The three plots of one set of values; with a 0 among them, all three
     // fit the same scale.
@@ -383,7 +443,7 @@ int main(int argc, char** argv) {
         {"shapes", shapes}, {"polygons", polygons}, {"text", text},
         {"pictures", pictures}, {"clipping", clipping}, {"aspect", aspect},
         {"image", imageScene}, {"turtle", turtleScene}, {"overlay", overlayScene},
-        {"stats", statsScene},
+        {"stats", statsScene}, {"colors", colorsScene}, {"transforms", transformsScene},
     };
     if (argc != 3 || scenes.count(argv[1]) == 0) {
         std::printf("usage: render_test <scene> <reference-dir>\nscenes:");

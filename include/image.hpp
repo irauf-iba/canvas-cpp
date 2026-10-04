@@ -98,6 +98,29 @@ Color getPixel(const Image& img, int row, int col);
 // img[row][col] = color.
 void setPixel(Image& img, int row, int col, Color color);
 
+// ---------------------------------------------------------------------------
+// Transformations
+//
+// Each returns a new image and leaves the original unchanged:
+//     image::Image small = image::resize(photo, photo.width / 2, photo.height / 2);
+// ---------------------------------------------------------------------------
+
+// The image mirrored left to right, or upside down.
+Image flipHorizontal(const Image& img);
+Image flipVertical(const Image& img);
+
+// The image turned counterclockwise by degrees (clockwise if negative). The
+// result is just big enough to hold the turned image, and the corners around
+// it are transparent. Multiples of 90 degrees turn the pixels exactly.
+Image rotate(const Image& img, double degrees);
+
+// The image stretched or shrunk to width x height pixels, smoothly.
+Image resize(const Image& img, int width, int height);
+
+// The width x height part of the image whose top-left corner is the pixel at
+// (row, col). It must lie inside the image.
+Image crop(const Image& img, int row, int col, int width, int height);
+
 }  // namespace image
 
 #endif  // CANVAS_IMAGE_HPP

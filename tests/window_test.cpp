@@ -1,6 +1,6 @@
 // Window lifetime tests. Each case runs in its own process.
 //
-// Usage: window_test keep-open | close-in-pause | close-while-drawing
+// Usage: window_test keep-open | close-in-pause | close-while-drawing | image-error | record-close
 //
 //   keep-open            After main() returns, the window stays open until it
 //                        is closed. A timer closes it after 300 ms.
@@ -10,6 +10,8 @@
 //                        drawing calls, without show() or pause().
 //   image-error          An error in the image module closes an open window
 //                        instead of keeping it open.
+//   record-close         Closing the window during an animation that is being
+//                        recorded saves the recording.
 
 #include <canvas.hpp>
 #include <image.hpp>
@@ -80,6 +82,21 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    std::printf("usage: window_test keep-open | close-in-pause | close-while-drawing | image-error\n");
+    if (test == "record-close") {
+        std::remove("rec_close.gif");
+        canvas::enableDoubleBuffering();
+        canvas::setFrameRate(50);
+        canvas::startRecording("rec_close.gif");
+        for (int frame = 0; frame < 500; ++frame) {
+            canvas::clear();
+            canvas::filledCircle(frame / 500.0, 0.5, 0.1);
+            if (frame == 5) pushQuit();
+            canvas::show();
+        }
+        std::printf("FAILED: still running after the window was closed\n");
+        return 1;
+    }
+
+    std::printf("usage: window_test keep-open | close-in-pause | close-while-drawing | image-error | record-close\n");
     return 2;
 }

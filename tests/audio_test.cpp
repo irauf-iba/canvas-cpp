@@ -86,6 +86,31 @@ void testMp3() {
     CHECK(std::abs(peak(s) - 0.5) < 0.05);
 }
 
+void testMakingSounds() {
+    // tone(): the length, frequency and volume, and a fade at both ends.
+    std::vector<double> t = audio::tone(1000, 0.5, 0.8);
+    CHECK(t.size() == static_cast<std::size_t>(0.5 * audio::SAMPLE_RATE));
+    CHECK(std::abs(frequency(t) - 1000) < 5);
+    CHECK(std::abs(peak(t) - 0.8) < 0.01);
+    CHECK(t.front() == 0 && std::abs(t.back()) < 1e-3);
+    std::vector<double> start(t.begin(), t.begin() + 44);  // the first millisecond
+    CHECK(peak(start) < 0.8 * 0.25);
+    CHECK(std::abs(peak(audio::tone(440, 0.1)) - 0.5) < 0.01);  // default volume 0.5
+
+    // note(): semitones from A4.
+    CHECK(std::abs(frequency(audio::note(0, 1)) - 440) < 2);
+    CHECK(std::abs(frequency(audio::note(12, 1)) - 880) < 2);
+    CHECK(std::abs(frequency(audio::note(-9, 1)) - 261.63) < 2);  // middle C
+    CHECK(audio::note(3, 0.25, 0.1).size() == static_cast<std::size_t>(0.25 * audio::SAMPLE_RATE));
+
+    // silence(), and sounds too short to fade fully.
+    std::vector<double> rest = audio::silence(0.2);
+    CHECK(rest.size() == static_cast<std::size_t>(0.2 * audio::SAMPLE_RATE));
+    CHECK(peak(rest) == 0);
+    CHECK(audio::tone(440, 0).empty());
+    CHECK(audio::tone(440, 0.001).size() == 44);
+}
+
 void testHeadlessPlayReturnsImmediately() {
     // In headless mode play() doesn't wait for a device.
     std::vector<double> t = tone(220, 2.0, 0.3);
@@ -134,6 +159,7 @@ int main(int argc, char** argv) {
     testClipping();
     testStereoResampled();
     testMp3();
+    testMakingSounds();
     testHeadlessPlayReturnsImmediately();
     return 0;  // checkCapture() reports the result
 }

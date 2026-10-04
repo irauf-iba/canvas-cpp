@@ -367,6 +367,46 @@ void play(const std::string& filename) {
     drainNow();
 }
 
+// --- Making sounds -----------------------------------------------------------------
+
+std::vector<double> silence(double seconds) {
+    if (!std::isfinite(seconds)) fail("silence: seconds is NaN or infinite");
+    if (seconds < 0) fail("silence: seconds must not be negative");
+    return std::vector<double>(static_cast<std::size_t>(std::llround(seconds * SAMPLE_RATE)), 0.0);
+}
+
+namespace {
+
+std::vector<double> sine(const char* function, double hz, double seconds, double volume) {
+    const std::string name = function;
+    if (!std::isfinite(hz) || !std::isfinite(seconds) || !std::isfinite(volume)) {
+        fail(name + ": an argument is NaN or infinite");
+    }
+    if (hz < 0) fail(name + ": the frequency must not be negative");
+    if (seconds < 0) fail(name + ": seconds must not be negative");
+    if (volume < 0 || volume > 1) fail(name + ": the volume must be between 0 and 1");
+    const double pi = 3.14159265358979323846;
+    std::vector<double> samples = silence(seconds);
+    const std::size_t n = samples.size();
+    // A short fade at each end: a sudden start or stop sounds like a click.
+    const double fade = std::min(0.005 * SAMPLE_RATE, static_cast<double>(n) / 2);
+    for (std::size_t i = 0; i < n; ++i) {
+        const double t = static_cast<double>(i) / SAMPLE_RATE;
+        const double edge = std::min(static_cast<double>(i), static_cast<double>(n - 1 - i));
+        const double gain = edge < fade ? edge / fade : 1;
+        samples[i] = volume * gain * std::sin(2 * pi * hz * t);
+    }
+    return samples;
+}
+
+}  // namespace
+
+std::vector<double> tone(double hz, double seconds, double volume) { return sine("tone", hz, seconds, volume); }
+
+std::vector<double> note(int pitch, double seconds, double volume) {
+    return sine("note", 440 * std::pow(2.0, pitch / 12.0), seconds, volume);
+}
+
 void playInBackground(const std::string& filename) {
     ensureInit();
     startBackground(sound(filename, "playInBackground"), nullptr);

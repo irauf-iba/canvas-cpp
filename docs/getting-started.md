@@ -78,6 +78,7 @@ Edit `main.cpp`. The guides explain each library:
 - [audio](audio.md): sound;
 - [chance](chance.md): random numbers;
 - [stats](stats.md): averages, spread and quick plots of numbers;
+- [stopwatch](stopwatch.md): timing code;
 - [input](input.md): help with `std::cin`, and asking questions with checked answers.
 
 To split your program into several files, add the other `.cpp` files to the

@@ -22,7 +22,7 @@ endfunction()
 canvas_test_executable(header_test)
 target_sources(header_test PRIVATE header_color_test.cpp header_image_test.cpp header_audio_test.cpp
                                    header_chance_test.cpp header_input_test.cpp header_turtle_test.cpp
-                                   header_stats_test.cpp)
+                                   header_stats_test.cpp header_stopwatch_test.cpp)
 target_compile_options(header_test PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/WX,-Werror>)
 add_test(NAME header COMMAND header_test)
 
@@ -30,7 +30,7 @@ add_test(NAME header COMMAND header_test)
 canvas_test_executable(render_test)
 target_include_directories(render_test SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)
 target_include_directories(render_test PRIVATE ${PROJECT_SOURCE_DIR}/src)  # screenImage()
-foreach(scene IN ITEMS shapes polygons text pictures clipping aspect image turtle overlay stats)
+foreach(scene IN ITEMS shapes polygons text pictures clipping aspect image turtle overlay stats colors transforms)
   add_test(NAME render.${scene}
            COMMAND render_test ${scene} ${CMAKE_CURRENT_SOURCE_DIR}/reference)
   set_tests_properties(render.${scene} PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
@@ -41,6 +41,32 @@ canvas_test_executable(chance_test)
 add_test(NAME chance COMMAND chance_test)
 add_test(NAME chance.seed-from-environment COMMAND chance_test env)
 set_tests_properties(chance.seed-from-environment PROPERTIES ENVIRONMENT CANVAS_SEED=12345)
+
+# Colors: gray(), hsv() and mix().
+canvas_test_executable(color_test)
+add_test(NAME color COMMAND color_test)
+
+# Game helpers: distance and overlap checks, also with different scales.
+canvas_test_executable(game_test)
+add_test(NAME game COMMAND game_test)
+set_tests_properties(game PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
+
+# The stopwatch.
+canvas_test_executable(stopwatch_test)
+add_test(NAME stopwatch COMMAND stopwatch_test)
+
+# Recording GIFs: frame timing and merging, slow motion, the 60-second limit,
+# and saving when the program ends without stopRecording().
+canvas_test_executable(recording_test)
+target_include_directories(recording_test SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)
+foreach(mode IN ITEMS frames limit exit check-exit)
+  add_test(NAME recording.${mode} COMMAND recording_test ${mode})
+  set_tests_properties(recording.${mode} PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
+endforeach()
+set_tests_properties(recording.exit PROPERTIES FIXTURES_SETUP recording_exit
+                     PASS_REGULAR_EXPRESSION "saved the recording 'rec_exit.gif' \\(1.0 seconds, 1 frame\\)")
+set_tests_properties(recording.check-exit PROPERTIES FIXTURES_REQUIRED recording_exit)
+set_tests_properties(recording.limit PROPERTIES TIMEOUT 60)
 
 # Statistics: the numbers, and where the plots draw.
 canvas_test_executable(stats_test)
@@ -135,6 +161,7 @@ set_tests_properties(audio.disk-output PROPERTIES TIMEOUT 20 ENVIRONMENT
 
 # Mouse and keyboard input, frame boundaries and pause() timing.
 canvas_test_executable(input_test SDL3::SDL3)
+target_include_directories(input_test PRIVATE ${PROJECT_SOURCE_DIR}/src)  # screenImage()
 add_test(NAME input COMMAND input_test)
 set_tests_properties(input PROPERTIES ENVIRONMENT SDL_VIDEO_DRIVER=dummy TIMEOUT 30)
 
@@ -145,12 +172,15 @@ add_test(NAME window.image-error COMMAND window_test image-error)
 set_tests_properties(window.image-error PROPERTIES
                      PASS_REGULAR_EXPRESSION "image: getPixel: col 512 is outside the image")
 set_tests_properties(window.keep-open PROPERTIES PASS_REGULAR_EXPRESSION "PASSED")
+add_test(NAME window.record-close COMMAND window_test record-close)
+set_tests_properties(window.record-close PROPERTIES
+                     PASS_REGULAR_EXPRESSION "saved the recording 'rec_close.gif'")
 foreach(name IN ITEMS close-in-pause close-while-drawing)
   add_test(NAME window.${name} COMMAND window_test ${name})
   set_tests_properties(window.${name} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
 endforeach()
 set_tests_properties(window.keep-open window.close-in-pause window.close-while-drawing
-                     window.image-error
+                     window.image-error window.record-close
                      PROPERTIES ENVIRONMENT SDL_VIDEO_DRIVER=dummy TIMEOUT 10)
 
 # Each mistake stops the program with a helpful message.
@@ -168,6 +198,12 @@ set(error_cases
   "negative-pause|pause: ms must not be negative"
   "negative-frame-rate|setFrameRate: the frame rate must not be negative"
   "grid-step|showGrid: the step must be positive"
+  "hsv-nan|hsv: an argument is NaN or infinite"
+  "overlap-negative|circlesOverlap: radius must not be negative"
+  "picture-rotated-nan|picture: an argument is NaN or infinite"
+  "record-format|startRecording: 'out.mp4' must end in .gif"
+  "record-twice|startRecording: already recording to 'a.gif' (call stopRecording() first)"
+  "record-cannot-write|startRecording: cannot write 'no-such-folder/a.gif'"
   "image-get-outside|image: getPixel: col 5 is outside the image (0 to 4)"
   "image-set-outside|image: setPixel: row -1 is outside the image (0 to 2)"
   "image-index-outside|image: [row][col]: row 3 is outside the image (0 to 2)"
@@ -176,12 +212,17 @@ set(error_cases
   "image-create-negative|image: create: width and height must not be negative"
   "image-save-format|image: save: 'out.gif' must end in .png, .jpg or .bmp"
   "image-save-empty|image: save: cannot save an empty image"
+  "image-crop-outside|image: crop: the 4 x 4 part at row 0, col 2 is not inside the 5 x 3 image"
+  "image-resize-zero|image: resize: width and height must be positive"
+  "image-rotate-nan|image: rotate: degrees is NaN or infinite"
   "image-inconsistent|canvas: picture: the image has 3 pixels, but width x height is 2 x 2"
   "audio-read-missing|audio: read: cannot open 'no-such-file.wav'"
   "audio-read-format|audio: read: 'music.ogg' must end in .wav or .mp3"
   "audio-read-invalid|audio: read: 'not-audio.wav' is not a valid WAV file"
   "audio-save-format|audio: save: 'out.mp3' must end in .wav"
   "audio-play-missing|audio: play: cannot open 'no-such-file.mp3'"
+  "audio-tone-volume|audio: tone: the volume must be between 0 and 1"
+  "audio-note-seconds|audio: note: seconds must not be negative"
   "input-bad-int|input: readAllInts: bad.txt, line 2: 'abc' is not a whole number"
   "input-too-large|input: readAllInts: big.txt, line 1: '99999999999' is too large for an int"
   "input-bad-double|input: readAllDoubles: line 3: '1,5' is not a number"

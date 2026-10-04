@@ -180,6 +180,14 @@ void picture(double x, double y, const std::string& filename, double width, doub
 void picture(double x, double y, const image::Image& img);
 void picture(double x, double y, const image::Image& img, double width, double height);
 
+// The same, turned counterclockwise by degrees around (x, y), e.g. for a
+// sprite that faces the way it moves. As with text, the angle is on the
+// screen, whatever the scale.
+void picture(double x, double y, const std::string& filename, double degrees);
+void picture(double x, double y, const std::string& filename, double width, double height, double degrees);
+void picture(double x, double y, const image::Image& img, double degrees);
+void picture(double x, double y, const image::Image& img, double width, double height, double degrees);
+
 // ---------------------------------------------------------------------------
 // Clearing, animation and saving
 // ---------------------------------------------------------------------------
@@ -227,6 +235,18 @@ void save(const std::string& filename);
 // It has the size set by setCanvasSize() (default 512 x 512), even on
 // high-DPI displays.
 image::Image snapshot();
+
+// Records an animation as a .gif file, to share or hand in:
+//     canvas::startRecording("game.gif");
+// Each frame (each show() or pause()) is recorded, at the speed the
+// animation is meant to run: with the frame rate, or the length of each
+// pause(), even if the computer is slow or the program runs headless.
+// stopRecording() saves the file. If it isn't called, the file is saved when
+// the program ends, also when the window is closed. A recording stops by
+// itself after 60 seconds. Like save(), it records the canvas without the
+// grid and watched values.
+void startRecording(const std::string& filename);
+void stopRecording();
 
 // ---------------------------------------------------------------------------
 // Debugging aids
@@ -277,6 +297,16 @@ template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
 void watch(const std::string& name, T value);
 void unwatch(const std::string& name);
 
+// Debug keys for animations. After enableDebugKeys(), these keys control the
+// program instead of being passed to it:
+//     P  pauses at the next frame (show() or pause()), and resumes;
+//     N  while paused, runs one more frame and pauses again;
+//     G  shows or hides the grid.
+// The window title says when the program is paused. In slow motion
+// (setDrawDelay), N steps one drawing call. disableDebugKeys() turns them off.
+void enableDebugKeys();
+void disableDebugKeys();
+
 // ---------------------------------------------------------------------------
 // Mouse
 // ---------------------------------------------------------------------------
@@ -317,6 +347,34 @@ bool isKeyPressed(Key key);
 // Use it for keys that do something once, such as turning in Snake:
 //     if (canvas::wasKeyPressed(canvas::Key::Left)) turnLeft();
 bool wasKeyPressed(Key key);
+
+// ---------------------------------------------------------------------------
+// Game helpers
+//
+// For collisions and buttons. Positions and sizes are in user coordinates,
+// as for drawing: a circle has a centre and a radius, as in filledCircle(),
+// and a rectangle a centre, half width and half height, as in
+// filledRectangle(). Shapes that just touch count as overlapping.
+//     if (canvas::circleOverlapsRectangle(ballX, ballY, 0.02, padX, padY, 0.1, 0.01)) {
+//         ballVY = -ballVY;   // bounce off the paddle
+//     }
+// The circle checks use the circles as drawn, round on the screen, even when
+// the x and y scales differ.
+// ---------------------------------------------------------------------------
+
+// The distance between the points (x0, y0) and (x1, y1).
+double distance(double x0, double y0, double x1, double y1);
+
+bool circlesOverlap(double x0, double y0, double r0, double x1, double y1, double r1);
+bool rectanglesOverlap(double x0, double y0, double halfWidth0, double halfHeight0,
+                       double x1, double y1, double halfWidth1, double halfHeight1);
+bool circleOverlapsRectangle(double cx, double cy, double radius,
+                             double x, double y, double halfWidth, double halfHeight);
+
+// True if the mouse is over the rectangle, e.g. a button drawn with
+// filledRectangle(x, y, halfWidth, halfHeight):
+//     if (canvas::mouseClicked() && canvas::isMouseOver(0.5, 0.2, 0.1, 0.05)) startGame();
+bool isMouseOver(double x, double y, double halfWidth, double halfHeight);
 
 // ---------------------------------------------------------------------------
 // Implementation of the text() and watch() templates

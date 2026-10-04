@@ -166,7 +166,90 @@ void testSpeed() {
 
 }  // namespace
 
+// A 3 x 2 image with a different colour in each pixel: row 0 is R G B,
+// row 1 is C M Y.
+image::Image six() {
+    image::Image img = image::create(3, 2);
+    img[0][0] = image::RED;
+    img[0][1] = image::GREEN;
+    img[0][2] = image::BLUE;
+    img[1][0] = image::CYAN;
+    img[1][1] = image::MAGENTA;
+    img[1][2] = image::YELLOW;
+    return img;
+}
+
+void testFlips() {
+    image::Image h = image::flipHorizontal(six());
+    CHECK(h.width == 3 && h.height == 2);
+    CHECK(h[0][0] == image::BLUE && h[0][2] == image::RED && h[1][0] == image::YELLOW);
+    image::Image v = image::flipVertical(six());
+    CHECK(v[0][0] == image::CYAN && v[1][2] == image::BLUE);
+    CHECK(image::flipHorizontal(image::flipHorizontal(six())).pixels == six().pixels);
+}
+
+void testQuarterTurns() {
+    // Counterclockwise: the top-right pixel goes to the top left.
+    image::Image left = image::rotate(six(), 90);
+    CHECK(left.width == 2 && left.height == 3);
+    CHECK(left[0][0] == image::BLUE && left[0][1] == image::YELLOW);
+    CHECK(left[2][0] == image::RED && left[2][1] == image::CYAN);
+    image::Image right = image::rotate(six(), -90);  // clockwise
+    CHECK(right[0][0] == image::CYAN && right[0][1] == image::RED);
+    image::Image half = image::rotate(six(), 180);
+    CHECK(half.width == 3 && half[0][0] == image::YELLOW && half[1][2] == image::RED);
+    CHECK(image::rotate(six(), 450).pixels == left.pixels);  // 450 is 90
+    CHECK(image::rotate(six(), 360).pixels == six().pixels);
+    CHECK(image::rotate(image::rotate(six(), 90), 270).pixels == six().pixels);
+}
+
+void testRotateAnyAngle() {
+    image::Image square = image::create(10, 10, image::RED);
+    image::Image turned = image::rotate(square, 45);
+    CHECK(turned.width == 15 && turned.height == 15);  // the diagonal, 14.1, rounded up
+    CHECK(turned[7][7] == image::RED);                // the middle is unchanged
+    CHECK(turned[0][0].a == 0 && turned[14][14].a == 0);  // the corners are transparent
+    CHECK(turned[7][0].a > 0);                         // the turned square reaches the edge
+}
+
+void testResize() {
+    // A checkerboard shrunk to a quarter averages to gray.
+    image::Image board = image::create(4, 4, image::BLACK);
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            if ((row + col) % 2 == 0) board[row][col] = image::WHITE;
+        }
+    }
+    image::Image small = image::resize(board, 2, 2);
+    CHECK(small.width == 2 && small.height == 2);
+    for (const image::Color& c : small.pixels) CHECK(near(c, image::gray(128), 1));
+
+    // Enlarging blends between neighbours; the ends keep their colours.
+    image::Image line = image::create(2, 1, image::BLACK);
+    line[0][1] = image::WHITE;
+    image::Image wide = image::resize(line, 8, 1);
+    CHECK(wide[0][0] == image::BLACK && wide[0][7] == image::WHITE);
+    CHECK(wide[0][3].r > 0 && wide[0][3].r < wide[0][4].r && wide[0][4].r < 255);
+
+    image::Image same = image::resize(six(), 3, 2);
+    CHECK(same.pixels == six().pixels);
+}
+
+void testCrop() {
+    image::Image part = image::crop(six(), 0, 1, 2, 2);  // row 0, col 1, 2 wide, 2 high
+    CHECK(part.width == 2 && part.height == 2);
+    CHECK(part[0][0] == image::GREEN && part[0][1] == image::BLUE);
+    CHECK(part[1][0] == image::MAGENTA && part[1][1] == image::YELLOW);
+    CHECK(image::crop(six(), 1, 2, 1, 1)[0][0] == image::YELLOW);
+    CHECK(image::crop(six(), 0, 0, 0, 0).pixels.empty());
+}
+
 int main() {
+    testFlips();
+    testQuarterTurns();
+    testRotateAnyAngle();
+    testResize();
+    testCrop();
     testCreate();
     testGetSet();
     testIndexOperator();

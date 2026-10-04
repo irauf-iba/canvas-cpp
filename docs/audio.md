@@ -36,6 +36,36 @@ The header [`include/audio.hpp`](../include/audio.hpp) documents every function.
 queue is full. A loop that plays one sample at a time therefore runs in real
 time, as in the example above.
 
+### Making sounds
+
+| Function | Gives |
+|---|---|
+| `audio::tone(hz, seconds)`, `audio::tone(hz, seconds, volume)` | A pure tone (a sine wave) at a frequency in hertz. The volume is from 0 to 1 (default 0.5). |
+| `audio::note(pitch, seconds)`, `audio::note(pitch, seconds, volume)` | A musical note, `pitch` semitones above A4 (440 Hz), or below if negative: 0 is A4, 3 is C5, 12 is A5 and −9 is middle C. |
+| `audio::silence(seconds)` | Silence, e.g. a rest between notes. |
+
+These return samples, so the same sound can be played now, played in the
+background, saved, or joined with others into a tune:
+
+```cpp
+audio::play(audio::note(0, 0.5));                     // A4 for half a second
+std::vector<double> beep = audio::tone(880, 0.1);     // a sound effect for a game
+audio::playInBackground(beep);                        // doesn't wait
+
+std::vector<double> tune;                             // three notes and a rest
+for (int pitch : {3, 7, 10}) {
+    std::vector<double> n = audio::note(pitch, 0.25);
+    tune.insert(tune.end(), n.begin(), n.end());
+}
+std::vector<double> rest = audio::silence(0.25);
+tune.insert(tune.end(), rest.begin(), rest.end());
+audio::save("tune.wav", tune);
+```
+
+Tones and notes fade in and out over 5 milliseconds, so they start and stop
+without a click. For other sounds, such as a plucked string, compute the
+samples yourself, as in the example at the top.
+
 ### Sound files
 
 | Function | Does |
@@ -102,6 +132,7 @@ audio: read: cannot open 'tune.wav'
 audio: read: 'music.ogg' must end in .wav or .mp3
 audio: read: 'tune.wav' is not a valid WAV file
 audio: save: 'out.mp3' must end in .wav
+audio: tone: the volume must be between 0 and 1
 ```
 
 ## Differences from Princeton's StdAudio
@@ -109,7 +140,8 @@ audio: save: 'out.mp3' must end in .wav
 | StdAudio | audio | Why |
 |---|---|---|
 | Reads WAV, AU, AIFF and MIDI | Reads WAV and MP3 | WAV and MP3 are the files students have. |
-| `startRecording()`, `stopRecording()` | Not supported | Recording from a microphone is left for later. |
+| `startRecording()`, `stopRecording()` | Not supported | Recording from a microphone is left for later. (`canvas::startRecording` records the canvas as a GIF.) |
+| — | `tone`, `note`, `silence` | Sound effects and tunes without computing samples. |
 | `double[]` | `std::vector<double>` | The C++ equivalent. |
 | Exceptions | Message and exit | Clearer for beginners than an uncaught exception. |
 
@@ -132,3 +164,5 @@ audio: save: 'out.mp3' must end in .wav
 - [`examples/piano.cpp`](../examples/piano.cpp): a keyboard piano. Type
   `a s d f g h j k` or click the keys. It combines `canvas` input with
   background notes.
+- [`examples/paddle.cpp`](../examples/paddle.cpp): a game with sound effects
+  made by `tone` and `note`, played in the background.

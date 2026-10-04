@@ -1,4 +1,4 @@
-# A program that uses the canvas-cpp library (canvas, turtle, image, audio, chance, stats, input).
+# A program that uses the canvas-cpp library (canvas, turtle, image, audio, chance, stats, stopwatch, input).
 # Usually you only change the list of .cpp files in add_executable.
 
 cmake_minimum_required(VERSION 3.24)

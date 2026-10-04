@@ -74,11 +74,11 @@ endif()
 # ---------------------------------------------------------------------------
 
 add_library(canvas STATIC src/canvas.cpp src/image.cpp src/audio.cpp src/chance.cpp src/input.cpp src/turtle.cpp
-                   src/stats.cpp src/common.cpp)
+                   src/stats.cpp src/color.cpp src/stopwatch.cpp src/recording.cpp src/common.cpp)
 add_library(canvas::canvas ALIAS canvas)
 
 target_include_directories(canvas PUBLIC include)
-target_include_directories(canvas SYSTEM PRIVATE third_party/stb third_party/dr_libs)  # no warnings from these
+target_include_directories(canvas SYSTEM PRIVATE third_party/stb third_party/dr_libs third_party/msf_gif)  # no warnings from these
 target_compile_features(canvas PUBLIC cxx_std_17)
 target_link_libraries(canvas PRIVATE SDL3::SDL3)  # students never see SDL
 

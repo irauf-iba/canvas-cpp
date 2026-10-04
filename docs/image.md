@@ -77,6 +77,30 @@ pixels are stored row after row in `img.pixels`: pixel (row, col) is
 Files are looked up in the current folder first, and then in the folder of
 the program itself, as described in [canvas.md](canvas.md#pictures-and-the-canvas).
 
+## Transformations
+
+Each of these returns a new image and leaves the original unchanged:
+
+| Function | Gives |
+|---|---|
+| `image::flipHorizontal(img)` | The image mirrored left to right. |
+| `image::flipVertical(img)` | The image upside down. |
+| `image::rotate(img, degrees)` | The image turned counterclockwise (clockwise if negative). The result is just big enough to hold it, with transparent corners. Multiples of 90° move the pixels exactly; other angles blend neighbouring pixels. |
+| `image::resize(img, width, height)` | The image stretched or shrunk to a new size. Shrinking averages the pixels each new pixel covers; enlarging blends between neighbours. |
+| `image::crop(img, row, col, width, height)` | The `width` × `height` part whose top-left corner is the pixel at (row, col). It must lie inside the image. |
+
+```cpp
+image::Image photo = image::load("photo.jpg");
+image::Image thumb = image::resize(photo, photo.width / 4, photo.height / 4);
+image::Image face = image::crop(photo, 40, 100, 200, 200);   // row 40, col 100, 200 x 200
+```
+
+They are building blocks, for example for a sprite facing either way or a
+photo shrunk to fit. Writing your own versions with `img[row][col]` is a good
+exercise, and these are there to check against.
+
+![An image flipped, rotated, resized and cropped (top), and pictures turned by canvas (bottom)](../tests/reference/transforms.png)
+
 ## Colors
 
 `image::Color` is the same type as `canvas::Color`, from
@@ -86,6 +110,9 @@ the program itself, as described in [canvas.md](canvas.md#pictures-and-the-canva
 - Make one from `int` values with `image::rgb(r, g, b)`, which clamps to
   0–255.
 - Compare colors with `==`.
+- `image::gray(level)`, `image::hsv(hue, saturation, value)` and
+  `image::mix(a, b, t)` make grays, colors from the color wheel, and blends
+  of two colors ([canvas.md](canvas.md#pen-colors-and-text) explains them).
 - The predefined colors are available under both names, e.g. `image::RED` is
   `canvas::RED`. [canvas.md](canvas.md#pen-colors-and-text) lists them.
 
@@ -95,6 +122,7 @@ the program itself, as described in [canvas.md](canvas.md#pictures-and-the-canva
 |---|---|
 | `canvas::picture(x, y, img)` | Draws the image centered at (x, y), at its natural size. Each image pixel covers exactly one canvas pixel. |
 | `canvas::picture(x, y, img, width, height)` | The same, scaled to a width and height in user coordinates. |
+| `canvas::picture(x, y, img, degrees)`, `canvas::picture(x, y, img, width, height, degrees)` | The same, turned counterclockwise around (x, y). For a sprite that turns every frame this is faster than `image::rotate`. |
 | `canvas::snapshot()` | A copy of the canvas as an image, e.g. to process a drawing. |
 
 On a canvas the same size as an image, `canvas::picture(0.5, 0.5, img)` fills
@@ -111,6 +139,7 @@ image: getPixel: col 640 is outside the image (0 to 639)
 image: setPixel: row -1 is outside the image (0 to 479)
 image: load: cannot open 'photo.png' (not in the current folder, /home/ana/lab3/build/)
 image: save: 'out.gif' must end in .png, .jpg or .bmp
+image: crop: the 300 x 200 part at row 0, col 400 is not inside the 640 x 480 image
 canvas: picture: the image has 3 pixels, but width x height is 2 x 2
 ```
 
@@ -125,6 +154,7 @@ hand so that they no longer match.
 | `get(col, row)`: column first | `[row][col]`: row first | The same order as 2D arrays and nested row/column loops, in every function. |
 | `picture.show()` opens a window | `canvas::picture(x, y, img)` | Images are shown on the `canvas` canvas, together with any drawing. |
 | `setOriginLowerLeft()` | Always top-left | One convention, the same as image files and editors. |
+| — | `flipHorizontal`, `flipVertical`, `rotate`, `resize`, `crop` | Common building blocks, e.g. for sprites and thumbnails. |
 | Exceptions | Message and exit | Clearer for beginners than an uncaught exception. |
 
 ## How it works

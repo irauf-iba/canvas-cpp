@@ -144,6 +144,19 @@ struct State {
     std::vector<std::uint8_t> composed;   // the canvas with the overlay drawn on it
     bool atFrameBoundary = false;  // true between consecutive show()/pause() calls
 
+    // Debug keys: P pauses at the next frame, N steps one frame, G toggles the grid.
+    bool debugKeys = false;
+    bool debugPaused = false;
+    bool debugStep = false;  // N while paused: run until the next frame
+
+    // Recording, for startRecording(): the time in the recording, which
+    // follows pause() and the frame rate rather than the clock, so a slow or
+    // headless run records at the intended speed.
+    bool recordStarted = false;  // a frame has been recorded
+    double recordClock = 0;      // seconds: when the last recorded frame appears
+    double recordNext = -1;      // how long that frame is shown; < 0: measure it
+    Uint64 recordTicks = 0;      // when that frame was shown
+
     std::map<std::string, image::Image> pictures;  // picture() files, by name
     std::vector<float> scratch;     // coverage accumulation for filled shapes
     std::vector<float> strokeMask;  // kept all zero between strokes
@@ -311,8 +324,9 @@ void updateTitle() {
     if (!s.window) return;
     s.lastTitleUpdate = SDL_GetTicksNS();
     s.titleStale = false;
+    const std::string paused = s.debugPaused ? " | paused: P resumes, N steps" : "";
     if (!s.showCoordinates) {
-        SDL_SetWindowTitle(s.window, s.title.c_str());
+        SDL_SetWindowTitle(s.window, (s.title + paused).c_str());
         return;
     }
     double x = s.xmin + s.mouseWX / s.windowW * (s.xmax - s.xmin);
@@ -327,8 +341,8 @@ void updateTitle() {
         std::snprintf(rate, sizeof rate, " | %.0f fps", s.fps);
     }
     char buffer[512];
-    std::snprintf(buffer, sizeof buffer, "%s | x %.*f, y %.*f%s", s.title.c_str(), decimals(s.xmax - s.xmin), x,
-                  decimals(s.ymax - s.ymin), y, rate);
+    std::snprintf(buffer, sizeof buffer, "%s | x %.*f, y %.*f%s%s", s.title.c_str(), decimals(s.xmax - s.xmin), x,
+                  decimals(s.ymax - s.ymin), y, rate, paused.c_str());
     SDL_SetWindowTitle(s.window, buffer);
 }
 
@@ -386,6 +400,25 @@ int keyIndexOf(SDL_Keycode k) {
     }
 }
 
+bool isDebugKey(SDL_Keycode k) { return k == SDLK_P || k == SDLK_N || k == SDLK_G; }
+
+void toggleGrid();
+
+// P, N and G with debug keys on. They are not passed on to the program.
+void handleDebugKey(SDL_Keycode k) {
+    State& s = st();
+    if (k == SDLK_P) {
+        s.debugPaused = !s.debugPaused;
+        s.debugStep = false;
+    } else if (k == SDLK_N) {
+        if (s.debugPaused) s.debugStep = true;
+        else s.debugPaused = true;  // pause at the next frame, then step from there
+    } else {
+        toggleGrid();
+    }
+    updateTitle();
+}
+
 void handleEvent(const SDL_Event& e) {
     State& s = st();
     switch (e.type) {
@@ -408,10 +441,15 @@ void handleEvent(const SDL_Event& e) {
         break;
     case SDL_EVENT_TEXT_INPUT:
         for (const char* p = e.text.text; *p; ++p) {
+            if (s.debugKeys && std::strchr("pPnNgG", *p)) continue;  // a debug key, not typing
             if (*p >= 32 && *p < 127) pushKey(*p);  // ASCII only; UTF-8 bytes are >= 128
         }
         break;
     case SDL_EVENT_KEY_DOWN:
+        if (s.debugKeys && isDebugKey(e.key.key)) {
+            if (!e.key.repeat) handleDebugKey(e.key.key);
+            break;
+        }
         if (!e.key.repeat) {
             int k = keyIndexOf(e.key.key);
             if (k >= 0) s.keyWentDown[static_cast<std::size_t>(k)] = true;
@@ -472,6 +510,79 @@ void waitWithEvents(int ms) {
     }
 }
 
+// With debug keys, after P: keeps showing the frame until P (resume) or N
+// (one more frame). Other input is ignored while paused.
+void waitWhilePaused() {
+    State& s = st();
+    if (!s.debugPaused || s.headless || !s.window) return;
+    if (s.debugStep) {  // stepping: this is the next frame, so stop again here
+        s.debugStep = false;
+    }
+    updateTitle();
+    present();
+    while (s.debugPaused && !s.debugStep) {
+        SDL_Event e;
+        if (!SDL_WaitEventTimeout(&e, 100)) continue;
+        switch (e.type) {
+        case SDL_EVENT_QUIT:
+        case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+        case SDL_EVENT_WINDOW_EXPOSED:
+        case SDL_EVENT_MOUSE_MOTION:
+            handleEvent(e);
+            if (s.titleStale) updateTitle();  // the coordinates readout keeps working
+            break;
+        case SDL_EVENT_KEY_DOWN:
+            if (isDebugKey(e.key.key) && !e.key.repeat) {
+                handleDebugKey(e.key.key);
+                present();  // e.g. the grid turned on or off
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    // Start the timing afresh, as after a long pause: no catching up.
+    s.hasFrame = false;
+    s.hasPaused = false;
+    s.recordTicks = SDL_GetTicksNS();
+    s.lastPump = 0;
+}
+
+image::Image canvasImage();
+
+// At each frame (show(), pause(), or a drawing call in slow motion), records
+// the canvas if a recording is running. seconds is how long the frame will
+// be shown, or < 0 if that isn't known (then the time until the next frame
+// is measured).
+void recordFrame(double seconds) {
+    if (!canvas_internal::recordingActive()) return;
+    State& s = st();
+    const Uint64 now = SDL_GetTicksNS();
+    if (s.recordStarted) {
+        // A frame without a known length: as long as it was on screen, or
+        // one sixtieth of a second when nothing is shown.
+        double previous = s.recordNext;
+        if (previous < 0) previous = s.headless ? 1.0 / 60 : static_cast<double>(now - s.recordTicks) / 1e9;
+        s.recordClock += previous;
+    }
+    s.recordStarted = true;
+    s.recordNext = seconds;
+    s.recordTicks = now;
+    canvas_internal::recordingFrame(canvasImage(), s.recordClock);
+}
+
+// Ends a recording with the canvas as it is now.
+void finishRecording(bool canFail) {
+    if (!canvas_internal::recordingActive()) return;
+    State& s = st();
+    double end = s.recordClock;
+    if (s.recordStarted) {
+        end += s.recordNext >= 0 ? s.recordNext
+                                 : (s.headless ? 1.0 / 60 : static_cast<double>(SDL_GetTicksNS() - s.recordTicks) / 1e9);
+    }
+    canvas_internal::recordingFinish(canvasImage(), end, canFail);
+}
+
 // Called after every drawing operation.
 void afterDraw() {
     State& s = st();
@@ -483,12 +594,17 @@ void afterDraw() {
     s.checkVisible = false;
     const bool wasDirty = s.dirty;
     s.dirty = true;
-    if (s.headless) return;
+    if (s.headless) {
+        if (s.drawDelay > 0) recordFrame(s.drawDelay / 1000.0);
+        return;
+    }
     Uint64 now = SDL_GetTicksNS();
     if (!wasDirty) s.dirtySince = now;
     if (s.drawDelay > 0) {  // slow motion: show every step
         present();
+        recordFrame(s.drawDelay / 1000.0);
         waitWithEvents(s.drawDelay);
+        waitWhilePaused();
         return;
     }
     if (s.doubleBuffered && now - s.dirtySince > 2'000'000'000) {
@@ -554,6 +670,7 @@ void endFrame() {
 void onExit() {
     canvas_internal::beginShutdown();
     State& s = st();
+    if (!canvas_internal::failing()) finishRecording(false);
     if (!s.window) return;
     if (!s.exiting && !canvas_internal::failing()) {
         // Keep the final picture on screen until the user closes the window.
@@ -1184,6 +1301,53 @@ void drawImagePX(const image::Image& img, double cx, double cy, double dw, doubl
     }
 }
 
+// Draws the image scaled to dw x dh pixels and turned counterclockwise by
+// degrees around pixel (cx, cy). Each canvas pixel is read from where it
+// comes from in the image, between pixels, with transparency outside the
+// image so the edges are smooth.
+void drawImagePX(const image::Image& img, double cx, double cy, double dw, double dh, double degrees) {
+    const double turn = std::fmod(degrees, 360.0);
+    if (turn == 0) {
+        drawImagePX(img, cx, cy, dw, dh);
+        return;
+    }
+    if (dw <= 0 || dh <= 0 || img.width == 0 || img.height == 0) return;
+    const double pi = 3.14159265358979323846;
+    const double c = std::cos(turn * pi / 180), s = std::sin(turn * pi / 180);
+    const double halfW = (std::abs(dw * c) + std::abs(dh * s)) / 2, halfH = (std::abs(dw * s) + std::abs(dh * c)) / 2;
+    Box box = clipBox(cx - halfW, cy - halfH, cx + halfW, cy + halfH);
+    if (box.empty()) noteOffscreen(cx - halfW, cy - halfH, cx + halfW, cy + halfH);
+    const double sx = img.width / dw, sy = img.height / dh;
+    auto texel = [&](int x, int y) {
+        return x < 0 || y < 0 || x >= img.width || y >= img.height
+                   ? Color{0, 0, 0, 0}
+                   : img.pixels[static_cast<std::size_t>(y) * static_cast<std::size_t>(img.width) +
+                                static_cast<std::size_t>(x)];
+    };
+    for (int y = box.y0; y < box.y1; ++y) {
+        for (int x = box.x0; x < box.x1; ++x) {
+            // Turn back by the angle (y points down on the screen).
+            const double dx = x + 0.5 - cx, dy = y + 0.5 - cy;
+            const double u = (dx * c - dy * s + dw / 2) * sx - 0.5, v = (dx * s + dy * c + dh / 2) * sy - 0.5;
+            if (u < -1 || v < -1 || u > img.width || v > img.height) continue;
+            const int i = static_cast<int>(std::floor(u)), j = static_cast<int>(std::floor(v));
+            const double fu = u - i, fv = v - j;
+            const Color q[4] = {texel(i, j), texel(i + 1, j), texel(i, j + 1), texel(i + 1, j + 1)};
+            const double wt[4] = {(1 - fu) * (1 - fv), fu * (1 - fv), (1 - fu) * fv, fu * fv};
+            double sum[4] = {0, 0, 0, 0};
+            for (int n = 0; n < 4; ++n) {
+                double a = wt[n] * q[n].a;
+                sum[0] += q[n].r * a;
+                sum[1] += q[n].g * a;
+                sum[2] += q[n].b * a;
+                sum[3] += a;
+            }
+            if (sum[3] <= 0) continue;
+            blend(pixelAt(x, y), sum[0] / sum[3], sum[1] / sum[3], sum[2] / sum[3], sum[3] / 255.0);
+        }
+    }
+}
+
 // The canvas at logical size (box-filtered down from physical pixels on
 // high-DPI displays).
 image::Image canvasImage() {
@@ -1343,6 +1507,12 @@ void overlayChanged() {
     s.dirty = true;
     if (s.headless || s.doubleBuffered) return;
     if (SDL_GetTicksNS() - s.lastPresent >= kPresentInterval) present();
+}
+
+// G with debug keys on.
+void toggleGrid() {
+    if (st().gridXStep > 0) hideGrid();
+    else showGrid();
 }
 
 // Maps a Key to the SDL keycode of the key with that label.
@@ -1647,6 +1817,32 @@ void picture(double x, double y, const std::string& filename, double width, doub
     picture(x, y, loadPicture(filename), width, height);
 }
 
+void picture(double x, double y, const image::Image& img, double degrees) {
+    checkFinite("picture", {x, y, degrees});
+    canvas_internal::checkImage(img, "canvas", "picture");
+    beginDraw("picture", x, y, false);
+    drawImagePX(img, toPX(x), toPY(y), img.width * st().scale, img.height * st().scale, degrees);
+    afterDraw();
+}
+
+void picture(double x, double y, const image::Image& img, double width, double height, double degrees) {
+    checkFinite("picture", {x, y, width, height, degrees});
+    checkNonNegative("picture", "width", width);
+    checkNonNegative("picture", "height", height);
+    canvas_internal::checkImage(img, "canvas", "picture");
+    beginDraw("picture", x, y, false);
+    drawImagePX(img, toPX(x), toPY(y), lengthPX(width), lengthPY(height), degrees);
+    afterDraw();
+}
+
+void picture(double x, double y, const std::string& filename, double degrees) {
+    picture(x, y, loadPicture(filename), degrees);
+}
+
+void picture(double x, double y, const std::string& filename, double width, double height, double degrees) {
+    picture(x, y, loadPicture(filename), width, height, degrees);
+}
+
 // --- Clearing, animation and saving ------------------------------------------
 
 void clear() { clear(WHITE); }
@@ -1776,12 +1972,15 @@ void show() {
     }
     present();
     pollEvents();
+    recordFrame(s.frameInterval > 0 ? static_cast<double>(s.frameInterval) / 1e9 : -1);
+    waitWhilePaused();
 }
 
 void pause(int ms) {
     if (ms < 0) fail("pause: ms must not be negative");
     endFrame();
     State& s = st();
+    recordFrame(ms / 1000.0);
     if (s.headless) return;
     if (!s.doubleBuffered && s.dirty) present();
 
@@ -1802,6 +2001,34 @@ void pause(int ms) {
     }
     s.hasPaused = true;
     s.pauseEnd = target > start ? target : now;
+    waitWhilePaused();
+}
+
+void enableDebugKeys() {
+    ensureInit();
+    st().debugKeys = true;
+}
+
+void disableDebugKeys() {
+    State& s = st();
+    s.debugKeys = false;
+    s.debugPaused = false;
+    s.debugStep = false;
+    updateTitle();
+}
+
+void startRecording(const std::string& filename) {
+    ensureInit();
+    canvas_internal::recordingStart(filename);
+    State& s = st();
+    s.recordStarted = false;
+    s.recordClock = 0;
+    s.recordNext = -1;
+}
+
+void stopRecording() {
+    ensureInit();
+    finishRecording(true);
 }
 
 void save(const std::string& filename) {
@@ -1868,6 +2095,7 @@ bool wasKeyPressed(Key key) {
 bool isKeyPressed(Key key) {
     beginInput();
     if (st().headless) return false;
+    if (st().debugKeys && (key == Key::P || key == Key::N || key == Key::G)) return false;
     const bool* state = SDL_GetKeyboardState(nullptr);
     auto down = [&](SDL_Keycode k) { return state[SDL_GetScancodeFromKey(k, nullptr)]; };
     switch (key) {
@@ -1877,6 +2105,79 @@ bool isKeyPressed(Key key) {
     case Key::Enter: return down(SDLK_RETURN) || down(SDLK_KP_ENTER);
     default: return down(keycodeOf(key));
     }
+}
+
+// --- Game helpers --------------------------------------------------------------
+
+double distance(double x0, double y0, double x1, double y1) {
+    checkFinite("distance", {x0, y0, x1, y1});
+    return std::hypot(x1 - x0, y1 - y0);
+}
+
+namespace {
+
+// Circles are compared where they are drawn, in pixels: with different x and
+// y scales they are round on the screen, not in user coordinates.
+struct PixelCircle {
+    double x, y, r;
+};
+
+PixelCircle pixelCircle(double x, double y, double radius) {
+    const State& s = st();
+    return {(x - s.xmin) / (s.xmax - s.xmin) * s.width, (s.ymax - y) / (s.ymax - s.ymin) * s.height,
+            std::abs(radius / (s.xmax - s.xmin) * s.width)};
+}
+
+// A rectangle in pixels, as its edges.
+struct PixelBox {
+    double left, top, right, bottom;
+};
+
+PixelBox pixelBox(double x, double y, double halfWidth, double halfHeight) {
+    const PixelCircle c = pixelCircle(x, y, 0);
+    const State& s = st();
+    const double hw = std::abs(halfWidth / (s.xmax - s.xmin) * s.width);
+    const double hh = std::abs(halfHeight / (s.ymax - s.ymin) * s.height);
+    return {c.x - hw, c.y - hh, c.x + hw, c.y + hh};
+}
+
+}  // namespace
+
+bool circlesOverlap(double x0, double y0, double r0, double x1, double y1, double r1) {
+    checkFinite("circlesOverlap", {x0, y0, r0, x1, y1, r1});
+    checkNonNegative("circlesOverlap", "radius", r0);
+    checkNonNegative("circlesOverlap", "radius", r1);
+    const PixelCircle a = pixelCircle(x0, y0, r0), b = pixelCircle(x1, y1, r1);
+    return std::hypot(a.x - b.x, a.y - b.y) <= a.r + b.r;
+}
+
+bool rectanglesOverlap(double x0, double y0, double halfWidth0, double halfHeight0, double x1, double y1,
+                       double halfWidth1, double halfHeight1) {
+    checkFinite("rectanglesOverlap", {x0, y0, halfWidth0, halfHeight0, x1, y1, halfWidth1, halfHeight1});
+    for (double h : {halfWidth0, halfHeight0, halfWidth1, halfHeight1}) {
+        checkNonNegative("rectanglesOverlap", "a half width or half height", h);
+    }
+    return std::abs(x0 - x1) <= halfWidth0 + halfWidth1 && std::abs(y0 - y1) <= halfHeight0 + halfHeight1;
+}
+
+bool circleOverlapsRectangle(double cx, double cy, double radius, double x, double y, double halfWidth,
+                             double halfHeight) {
+    checkFinite("circleOverlapsRectangle", {cx, cy, radius, x, y, halfWidth, halfHeight});
+    checkNonNegative("circleOverlapsRectangle", "radius", radius);
+    checkNonNegative("circleOverlapsRectangle", "halfWidth", halfWidth);
+    checkNonNegative("circleOverlapsRectangle", "halfHeight", halfHeight);
+    const PixelCircle c = pixelCircle(cx, cy, radius);
+    const PixelBox b = pixelBox(x, y, halfWidth, halfHeight);
+    // The point of the rectangle nearest the circle's centre.
+    const double nx = std::clamp(c.x, b.left, b.right), ny = std::clamp(c.y, b.top, b.bottom);
+    return std::hypot(c.x - nx, c.y - ny) <= c.r;
+}
+
+bool isMouseOver(double x, double y, double halfWidth, double halfHeight) {
+    checkFinite("isMouseOver", {x, y, halfWidth, halfHeight});
+    checkNonNegative("isMouseOver", "halfWidth", halfWidth);
+    checkNonNegative("isMouseOver", "halfHeight", halfHeight);
+    return std::abs(mouseX() - x) <= halfWidth && std::abs(mouseY() - y) <= halfHeight;
 }
 
 }  // namespace canvas
