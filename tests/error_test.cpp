@@ -9,6 +9,7 @@
 #include <image.hpp>
 #include <input.hpp>
 #include <output.hpp>
+#include <turtle.hpp>
 
 #include <cmath>
 #include <cstdio>
@@ -66,6 +67,7 @@ int main(int argc, char** argv) {
         {"input-to-double", [] { input::toDouble("abc"); }},
         {"input-missing-file", [] { input::fromFile("no-such-file.txt"); }},
         {"output-cannot-write", [] { output::toFile("no-such-folder/out.txt"); }},
+        {"turtle-nan", [] { turtle::forward(std::sqrt(-1.0)); }},
         {"chance-empty-range", [] { chance::uniform(5, 5); }},
         {"chance-bad-n", [] { chance::uniform(0); }},
         {"chance-bad-p", [] { chance::bernoulli(1.5); }},

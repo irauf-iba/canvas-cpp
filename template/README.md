@@ -52,6 +52,7 @@ their namespace:
 
 ```cpp
 #include <canvas.hpp>   // drawing, animation, mouse and keyboard
+#include <turtle.hpp>   // drawing by moving and turning
 #include <image.hpp>    // images, pixel by pixel
 #include <audio.hpp>    // sound
 #include <chance.hpp>   // random numbers
@@ -82,6 +83,7 @@ The library stops with a message that says what happened, for example
 The library guides explain every function:
 
 - [canvas](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/canvas.md): drawing, animation, mouse and keyboard
+- [turtle](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/turtle.md): drawing by moving and turning
 - [image](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/image.md): images, pixel by pixel
 - [audio](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/audio.md): sound
 - [chance](https://github.com/irauf-iba/canvas-cpp/blob/main/docs/chance.md): random numbers

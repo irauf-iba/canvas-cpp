@@ -21,14 +21,14 @@ endfunction()
 # treated as errors.
 canvas_test_executable(header_test)
 target_sources(header_test PRIVATE header_color_test.cpp header_image_test.cpp header_audio_test.cpp
-                                   header_chance_test.cpp header_input_test.cpp)
+                                   header_chance_test.cpp header_input_test.cpp header_turtle_test.cpp)
 target_compile_options(header_test PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/WX,-Werror>)
 add_test(NAME header COMMAND header_test)
 
 # Snapshot tests against images in tests/reference.
 canvas_test_executable(render_test)
 target_include_directories(render_test SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)
-foreach(scene IN ITEMS shapes polygons text pictures clipping aspect image)
+foreach(scene IN ITEMS shapes polygons text pictures clipping aspect image turtle)
   add_test(NAME render.${scene}
            COMMAND render_test ${scene} ${CMAKE_CURRENT_SOURCE_DIR}/reference)
   set_tests_properties(render.${scene} PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
@@ -65,6 +65,11 @@ add_stdin_test(ask.no-more-input ask_test empty_input.txt "input: askInt: no mor
 canvas_test_executable(output_test)
 add_test(NAME output COMMAND output_test)
 set_tests_properties(output PROPERTIES PASS_REGULAR_EXPRESSION "PASSED")
+
+# Turtle graphics: positions, headings, the pen.
+canvas_test_executable(turtle_test)
+add_test(NAME turtle COMMAND turtle_test)
+set_tests_properties(turtle PROPERTIES ENVIRONMENT CANVAS_HEADLESS=1)
 
 # text() with numbers and characters.
 canvas_test_executable(text_test)
@@ -161,6 +166,7 @@ set(error_cases
   "input-to-double|input: toDouble: 'abc' is not a number"
   "input-missing-file|input: fromFile: cannot open 'no-such-file.txt'"
   "output-cannot-write|output: toFile: cannot write 'no-such-folder/out.txt'"
+  "turtle-nan|turtle: forward: an argument is NaN or infinite"
   "chance-empty-range|chance: uniform: the range 5 to 5 is empty (b must be greater than a)"
   "chance-bad-n|chance: uniform: n must be positive, not 0"
   "chance-bad-p|chance: bernoulli: p must be between 0 and 1"
@@ -172,7 +178,7 @@ foreach(entry IN LISTS error_cases)
   string(SUBSTRING "${entry}" 0 ${bar} name)
   math(EXPR start "${bar} + 1")
   string(SUBSTRING "${entry}" ${start} -1 message)
-  if(NOT message MATCHES "^(canvas|image|audio|chance|input|output): ")
+  if(NOT message MATCHES "^(canvas|turtle|image|audio|chance|input|output): ")
     set(message "canvas: ${message}")
   endif()
   string(REGEX REPLACE "([][.*+?()^$])" "\\\\\\1" pattern "${message}")

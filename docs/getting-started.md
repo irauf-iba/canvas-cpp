@@ -73,6 +73,7 @@ A window should open with a blue ball that follows the mouse.
 Edit `main.cpp`. The guides explain each library:
 
 - [canvas](canvas.md): drawing, animation, mouse and keyboard;
+- [turtle](turtle.md): drawing by moving and turning;
 - [image](image.md): images, pixel by pixel;
 - [audio](audio.md): sound;
 - [chance](chance.md): random numbers;

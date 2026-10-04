@@ -58,6 +58,9 @@ void writeImageFile(const image::Image& img, const std::string& filename, const 
 // as audio::play(). Cheap to call often.
 void keepWindowAlive();
 
+// The centre of the canvas in user coordinates (with the current scale).
+void canvasCenter(double& x, double& y);
+
 }  // namespace canvas_internal
 
 #endif  // CANVAS_INTERNAL_HPP

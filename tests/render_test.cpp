@@ -8,6 +8,7 @@
 // On failure, <scene>-diff.png marks the differing pixels in red.
 
 #include <canvas.hpp>
+#include <turtle.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -222,6 +223,57 @@ void imageScene() {
     canvas::picture(0.5, 0.5, c);
 }
 
+void koch(int n, double size) {
+    if (n == 0) {
+        turtle::forward(size);
+        return;
+    }
+    koch(n - 1, size / 3);
+    turtle::turnLeft(60);
+    koch(n - 1, size / 3);
+    turtle::turnRight(120);
+    koch(n - 1, size / 3);
+    turtle::turnLeft(60);
+    koch(n - 1, size / 3);
+}
+
+void turtleScene() {
+    // A Koch snowflake, a square spiral and a dashed line, drawn by the
+    // turtle with the canvas pen.
+    canvas::setCanvasSize(400, 400);
+    canvas::setScale(-1, 1);
+    canvas::setPenColor(canvas::BOOK_BLUE);
+    canvas::setPenWidth(2);
+    turtle::penUp();
+    turtle::moveTo(-0.9, 0.35);
+    turtle::penDown();
+    for (int side = 0; side < 3; ++side) {
+        koch(3, 0.9);
+        turtle::turnRight(120);
+    }
+
+    canvas::setPenColor(canvas::BOOK_RED);
+    turtle::penUp();
+    turtle::moveTo(0.5, -0.5);
+    turtle::setHeading(0);
+    turtle::penDown();
+    for (int i = 1; i <= 24; ++i) {
+        turtle::forward(0.02 * i);
+        turtle::turnLeft(90);
+    }
+
+    canvas::setPenColor(canvas::BLACK);
+    turtle::penUp();
+    turtle::moveTo(-0.9, -0.9);
+    turtle::setHeading(0);
+    for (int i = 0; i < 10; ++i) {
+        turtle::penDown();
+        turtle::forward(0.06);
+        turtle::penUp();
+        turtle::forward(0.04);
+    }
+}
+
 // --- comparison --------------------------------------------------------------
 
 struct Pixels {
@@ -299,7 +351,7 @@ int main(int argc, char** argv) {
     const std::map<std::string, std::function<void()>> scenes = {
         {"shapes", shapes}, {"polygons", polygons}, {"text", text},
         {"pictures", pictures}, {"clipping", clipping}, {"aspect", aspect},
-        {"image", imageScene},
+        {"image", imageScene}, {"turtle", turtleScene},
     };
     if (argc != 3 || scenes.count(argv[1]) == 0) {
         std::printf("usage: render_test <scene> <reference-dir>\nscenes:");

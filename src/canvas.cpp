@@ -1510,3 +1510,9 @@ bool isKeyPressed(Key key) {
 void canvas_internal::keepWindowAlive() {
     if (canvas::st().window) canvas::pumpIfDue(SDL_GetTicksNS());
 }
+
+void canvas_internal::canvasCenter(double& x, double& y) {
+    const canvas::State& s = canvas::st();
+    x = (s.xmin + s.xmax) / 2;
+    y = (s.ymin + s.ymax) / 2;
+}
