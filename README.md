@@ -194,7 +194,11 @@ include/stats.hpp      statistics
 include/stopwatch.hpp  timing code
 include/input.hpp      helpers for std::cin (and output.hpp: std::cout to a file)
 include/color.hpp      Color and the predefined colors (shared)
-src/canvas.cpp         canvas implementation (SDL, rasterizer, text)
+src/canvas.cpp         canvas drawing functions; canvas_impl.hpp explains the split:
+src/window.cpp         window, events, frames, input (SDL)
+src/raster.cpp         shapes and images into pixels
+src/text.cpp           fonts and text (stb_truetype)
+src/debug.cpp          hints, grid and watched values
 src/turtle.cpp         turtle implementation (draws with canvas)
 src/image.cpp          image implementation and image file I/O
 src/audio.cpp          audio implementation (SDL audio, sound files)

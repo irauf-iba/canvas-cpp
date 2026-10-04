@@ -73,7 +73,7 @@ endif()
 # canvas library (the canvas, turtle, image, audio, chance, stats, input and output modules)
 # ---------------------------------------------------------------------------
 
-add_library(canvas STATIC src/canvas.cpp src/image.cpp src/audio.cpp src/chance.cpp src/input.cpp src/turtle.cpp
+add_library(canvas STATIC src/canvas.cpp src/window.cpp src/raster.cpp src/text.cpp src/debug.cpp src/image.cpp src/audio.cpp src/chance.cpp src/input.cpp src/turtle.cpp
                    src/stats.cpp src/color.cpp src/stopwatch.cpp src/recording.cpp src/common.cpp)
 add_library(canvas::canvas ALIAS canvas)
 
